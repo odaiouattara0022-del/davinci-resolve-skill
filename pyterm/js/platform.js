@@ -126,25 +126,52 @@
 
   /* ------------------------------------------------------------ moteur */
 
-  /* Sur iPhone, le noyau CPython local est hors d'atteinte : rien ne peut
-     l'heberger sur l'appareil, et une page servie en HTTPS ne peut pas
-     joindre un http://192.168.x.x (contenu mixte). On le dit clairement
-     plutot que de laisser l'utilisateur buter dessus.                      */
-  function annotateBackendChoice() {
+  /* Sur iPhone, aucun interpreteur ne tourne sur l'appareil : le moteur local
+     suppose un noyau distant. Une page servie en HTTPS ne peut joindre qu'un
+     noyau lui aussi en HTTPS — un http://192.168.x.x est bloque comme contenu
+     mixte. On n'interdit donc pas le choix : on l'ouvre des qu'une adresse
+     https est renseignee (tunnel, VPS), et on explique sinon.              */
+  function backendNote() {
+    var note = document.getElementById('backend-note');
+    if (note) return note;
+    note = document.createElement('p');
+    note.id = 'backend-note';
+    note.className = 'hint';
+    var field = document.getElementById('field-kernel');
+    if (field && field.parentNode) field.parentNode.insertBefore(note, field);
+    return note;
+  }
+
+  function refreshBackendChoice() {
     var select = document.getElementById('set-backend');
-    if (!select) return;
+    if (!select || !isIOS) return;
     var option = select.querySelector('option[value="native"]');
     if (!option) return;
-    if (isIOS) {
-      option.textContent = 'Local — vrai CPython (indisponible sur iPhone)';
-      option.disabled = true;
-      var note = document.createElement('p');
-      note.className = 'hint';
-      note.textContent = 'iOS n\'autorise aucun interpreteur local, et une page ' +
-        'securisee ne peut pas joindre un noyau en http sur le reseau local. ' +
-        'Sur iPhone, PyTerm fonctionne donc avec le moteur du navigateur.';
-      var field = document.getElementById('field-kernel');
-      if (field && field.parentNode) field.parentNode.insertBefore(note, field);
+
+    var input = document.getElementById('set-kernel-url');
+    var url = (input && input.value || '').trim();
+    var secure = /^https:\/\//i.test(url);
+
+    option.disabled = !secure;
+    option.textContent = secure
+      ? 'Local — vrai CPython (noyau distant en HTTPS)'
+      : 'Local — vrai CPython (adresse HTTPS requise sur iPhone)';
+
+    backendNote().textContent = secure
+      ? 'Adresse securisee detectee : l\'iPhone peut piloter ce noyau. '
+        + 'Verifiez qu\'il exige un jeton — il execute le code qu\'il recoit.'
+      : 'iOS ne fait tourner aucun interpreteur local, et cette page securisee '
+        + 'ne peut pas joindre un noyau en http. Renseignez une adresse https '
+        + '(tunnel Cloudflare, Tailscale, VPS) pour activer ce moteur ; sinon '
+        + 'PyTerm utilise le moteur du navigateur, qui suffit a la plupart des usages.';
+  }
+
+  function wireBackendChoice() {
+    refreshBackendChoice();
+    var input = document.getElementById('set-kernel-url');
+    if (input) {
+      input.addEventListener('input', refreshBackendChoice);
+      input.addEventListener('change', refreshBackendChoice);
     }
   }
 
@@ -155,7 +182,7 @@
     if (isStandalone) document.documentElement.setAttribute('data-standalone', 'yes');
 
     wireViewport();
-    annotateBackendChoice();
+    wireBackendChoice();
 
     global.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
@@ -173,6 +200,7 @@
     isSafari: isSafari,
     isStandalone: isStandalone,
     showInstall: function () { showSheet(); },
+    refreshBackendChoice: refreshBackendChoice,
     syncHeight: syncHeight,
     init: init
   };

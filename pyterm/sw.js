@@ -54,6 +54,20 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  // Dependances versionnees auto-hebergees : elles ne changent jamais.
+  if (url.origin === self.location.origin && url.pathname.indexOf('/vendor/') >= 0) {
+    e.respondWith(
+      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }))
+    );
+    return;
+  }
+
   // Coque applicative : reseau d'abord (pour recevoir les mises a jour), cache en secours.
   e.respondWith(
     fetch(req).then((res) => {

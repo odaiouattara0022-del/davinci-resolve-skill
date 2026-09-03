@@ -10,7 +10,10 @@
 (function (global) {
   'use strict';
 
-  var PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
+  /* Surchargeable par window.PYTERM_PYODIDE_URL : tools/vendor_assets.py y
+     place une copie locale, ce qui supprime toute dependance a un CDN.     */
+  var PYODIDE_URL = global.PYTERM_PYODIDE_URL ||
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 
   /* ---------------------------------------------------------------- utils */
 

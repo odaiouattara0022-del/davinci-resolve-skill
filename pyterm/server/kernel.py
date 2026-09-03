@@ -509,9 +509,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-cache")
         # Isolation du site : debloque SharedArrayBuffer, donc input() en direct
-        # et l'interruption Ctrl+C du moteur Pyodide.
+        # et l'interruption Ctrl+C du moteur Pyodide. require-corp plutot que
+        # credentialless, que Safari ne connait pas : les ressources externes
+        # sont chargees en mode CORS (crossorigin="anonymous").
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
-        self.send_header("Cross-Origin-Embedder-Policy", "credentialless")
+        self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
         self.end_headers()
         self.wfile.write(data)

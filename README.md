@@ -22,9 +22,12 @@ two engines: **Pyodide** in the browser (zero setup, the one iOS allows) or the
 **real CPython** on your machine via `pyterm/server/kernel.py` (full `pip`,
 sockets, real disk).
 
-- **iPhone / Android** — publish `pyterm/` over HTTPS (the bundled
-  [Pages workflow](.github/workflows/pages.yml) does it on every push to `main`),
-  open it in Safari or Chrome, then *Add to Home Screen* / *Install app*.
+- **iPhone / Android** — publish `pyterm/` over HTTPS, open it in Safari or
+  Chrome, then *Add to Home Screen* / *Install app*. Upload it to any Apache or
+  LiteSpeed host (Hostinger, cPanel…) and the bundled `.htaccess` turns on
+  cross-origin isolation, which gives you live `input()` and real interruption;
+  the [Pages workflow](.github/workflows/pages.yml) is the zero-effort
+  alternative, minus those two.
 - **Desktop** — `python3 pyterm/server/kernel.py`, then open
   `http://127.0.0.1:8777` and install it from the address bar.
 

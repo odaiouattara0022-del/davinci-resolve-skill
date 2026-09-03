@@ -20,15 +20,22 @@ iOS n'installe une application depuis le web que si la page est servie en
 
 ### a. Publier l'application (une seule fois)
 
-Le workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)
-publie automatiquement le dossier `pyterm/` sur GitHub Pages à chaque envoi
-sur `main`.
+Deux routes, détaillées au §7. **Si vous avez un hébergement Hostinger,
+utilisez-le** : il vous laisse définir les en-têtes HTTP, ce qui débloque
+`input()` en direct et le vrai Ctrl+C sur l'iPhone. GitHub Pages ne le
+permet pas.
 
-1. Sur GitHub : **Settings → Pages → Source : GitHub Actions**.
-2. Fusionnez cette branche dans `main` (ou lancez le workflow à la main
-   depuis l'onglet *Actions*).
-3. L'adresse s'affiche à la fin du workflow, de la forme
-   `https://<votre-compte>.github.io/davinci-resolve-skill/`.
+| | Hostinger (ou tout Apache/LiteSpeed) | GitHub Pages |
+|---|---|---|
+| Mise en ligne | téléversement du dossier | automatique à chaque `push` |
+| `input()` en direct sur iPhone | **oui** | non |
+| Arrêt propre d'un programme | **oui** | redémarre le moteur |
+| Sans aucun CDN | **oui** (§7c) | possible mais lourd |
+| Nom de domaine | le vôtre | `github.io` |
+
+Version courte pour Hostinger : téléversez le contenu de `pyterm/` dans
+`public_html/`, activez le SSL gratuit, c'est prêt. Le fichier `.htaccess`
+fourni fait le reste.
 
 ### b. Poser l'icône sur l'écran d'accueil
 
@@ -164,19 +171,70 @@ inspectables — c'est le mode « Run with Python Console » de PyCharm.
 
 ---
 
-## 7. Héberger l'interface
+## 7. Héberger l'application
 
 Le dossier est entièrement statique — aucune construction, aucun `npm`.
 
-**GitHub Pages** : *Settings → Pages → Deploy from a branch*, puis ouvrez
-`https://<utilisateur>.github.io/<dépôt>/pyterm/`.
+### a. Hostinger, cPanel, o2switch… (recommandé)
 
-**Serveur local** : n'importe quel serveur statique convient, mais
-`server/kernel.py` est préférable — lui seul envoie les en-têtes
-`Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` qui activent
-la saisie clavier en direct et l'interruption propre.
+1. **hPanel → Gestionnaire de fichiers**, ouvrez `public_html/`.
+2. Téléversez le **contenu** de `pyterm/` (pas le dossier lui-même), en
+   incluant le fichier `.htaccess`. Le gestionnaire de fichiers masque parfois
+   les fichiers commençant par un point : activez *Afficher les fichiers
+   cachés*. Par FTP, la plupart des clients ont la même option.
+3. **hPanel → SSL**, activez le certificat gratuit. iOS n'installe une
+   application que depuis une adresse `https`.
+4. Ouvrez votre domaine dans Safari → Partager → **Sur l'écran d'accueil**.
 
----
+Vous pouvez aussi installer dans un sous-dossier (`public_html/pyterm/`) :
+tous les chemins de l'application sont relatifs, rien à modifier.
+
+**Ce que `.htaccess` apporte**, et que les hébergements statiques ne peuvent
+pas offrir :
+
+- `Cross-Origin-Opener-Policy` et `Cross-Origin-Embedder-Policy`, qui isolent
+  le site et débloquent `SharedArrayBuffer` — donc **`input()` répond pendant
+  l'exécution** et **le bouton d'arrêt interrompt vraiment** le programme, au
+  lieu de redémarrer le moteur. C'est la différence la plus visible à
+  l'usage, sur iPhone comme ailleurs.
+- Les types MIME que beaucoup d'hébergements oublient (`.webmanifest`,
+  `.wasm`), sans lesquels l'installation et Pyodide échouent.
+- La redirection vers HTTPS, le cache long sur les dépendances versionnées
+  et la compression.
+
+### b. GitHub Pages
+
+Le workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)
+publie `pyterm/` à chaque envoi sur `main`.
+
+1. **Settings → Pages → Source : GitHub Actions**.
+2. Fusionnez sur `main`, ou lancez le workflow depuis l'onglet *Actions*.
+3. L'adresse s'affiche à la fin du workflow.
+
+Gratuit et automatique, mais GitHub Pages ne laisse pas définir les en-têtes
+d'isolation : `input()` demandera ses réponses avant l'exécution.
+
+### c. Se passer complètement des CDN
+
+Par défaut, CodeMirror et Pyodide viennent de CDN publics. Une commande
+rapatrie tout chez vous :
+
+```bash
+python3 pyterm/tools/vendor_assets.py                    # cœur, ~12 Mo
+python3 pyterm/tools/vendor_assets.py --packages numpy   # + numpy hors ligne
+python3 pyterm/tools/vendor_assets.py --restore          # revenir en arrière
+```
+
+Le script télécharge dans `pyterm/vendor/`, fait pointer `index.html` dessus
+et garde une sauvegarde. Téléversez ensuite le dossier complet, `vendor/`
+compris. Intérêt : plus aucune dépendance externe, premier chargement plus
+rapide depuis votre région, et l'isolation du site devient triviale puisque
+tout est servi par la même origine.
+
+### d. Serveur local
+
+`server/kernel.py` reste le meilleur choix pour développer sur ordinateur :
+il envoie déjà les mêmes en-têtes d'isolation que le `.htaccess`.
 
 ## 8. Le noyau local en détail
 
@@ -210,6 +268,30 @@ puis, sur le téléphone, ouvrez `http://<ip-de-l-ordinateur>:8777/?token=monsec
 > par défaut, et refuse de démarrer sur une autre adresse sans `--token`.
 > Ne l'exposez jamais sur un réseau que vous ne maîtrisez pas.
 
+### Le joindre depuis l'iPhone
+
+Un hébergement mutualisé (Hostinger, cPanel…) ne fait tourner que des fichiers
+statiques : `kernel.py` ne peut pas y vivre. Deux options pour que l'iPhone
+pilote un vrai CPython :
+
+```bash
+cloudflared tunnel --url http://localhost:8777   # adresse https immédiate
+tailscale serve 8777                             # via votre réseau privé
+```
+
+Renseignez l'adresse `https` obtenue dans **Réglages → Adresse du noyau
+local** : le moteur *CPython local* s'active alors sur iPhone. Tant que
+l'adresse est en `http`, il reste désactivé — une page sécurisée ne peut pas
+joindre un service non sécurisé.
+
+> **À peser sérieusement.** Un tunnel public place un service d'exécution de
+> code arbitraire sur Internet. Le jeton est une protection mince : quiconque
+> l'obtient exécute ce qu'il veut sur votre machine, avec vos droits.
+> Tailscale, qui n'expose rien hors de votre réseau privé, est nettement plus
+> sûr qu'un tunnel ouvert. Sur un VPS, faites-le tourner sous un compte
+> dédié et sans données sensibles à portée. Pour un usage courant, le moteur
+> du navigateur reste le choix raisonnable.
+
 ---
 
 ## 9. Structure
@@ -234,8 +316,11 @@ pyterm/
 │   └── main.js             assemblage
 ├── server/
 │   └── kernel.py           noyau CPython + serveur (stdlib seule)
-└── tools/
-    └── make_icons.py       régénère icônes et écrans de lancement
+├── tools/
+│   ├── make_icons.py       régénère icônes et écrans de lancement
+│   └── vendor_assets.py    rapatrie CodeMirror et Pyodide en local
+├── vendor/                 dépendances auto-hébergées (créé à la demande)
+└── .htaccess               en-têtes d'isolation pour Apache / LiteSpeed
 ```
 
 Les icônes et les écrans de lancement sont dessinés par
@@ -256,11 +341,11 @@ par le service worker ; Pyodide de même, à la première exécution.
   passez au moteur local.
 - Pas de sockets réseau ni de `subprocess` en mode navigateur : ce sont des
   limites du bac à sable du navigateur, pas de PyTerm.
-- `input()` en direct et l'interruption Ctrl+C exigent l'isolation du site,
-  c'est-à-dire d'ouvrir l'interface via `server/kernel.py` (ou tout
-  hébergement envoyant les en-têtes COOP/COEP). GitHub Pages ne les envoie
-  pas : sur iPhone, PyTerm demande donc les entrées avant l'exécution, et le
-  bouton d'arrêt redémarre le moteur.
+- `input()` en direct et l'interruption Ctrl+C exigent l'isolation du site.
+  Elle est acquise avec `server/kernel.py` et avec le `.htaccess` fourni
+  (Hostinger et tout Apache/LiteSpeed). Elle ne l'est pas sur GitHub Pages,
+  qui ne permet pas de définir ces en-têtes : là, PyTerm demande les entrées
+  avant l'exécution et le bouton d'arrêt redémarre le moteur.
 - Une application native pour l'App Store exigerait un Mac, Xcode et un
   compte développeur Apple payant. L'installation depuis Safari donne le même
   résultat visible — icône, plein écran, hors-ligne — sans rien de tout cela.

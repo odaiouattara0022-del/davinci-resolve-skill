@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# PyTerm : dependances rapatriees par tools/vendor_assets.py
+pyterm/vendor/
+pyterm/index.html.cdn
