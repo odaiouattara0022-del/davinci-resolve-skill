@@ -358,6 +358,7 @@ main { min-width: 0; padding: 18px 20px 60px; }
     <div class="seg">
       <button id="zoomOut" title="Zoom arrière (-)">−</button>
       <button id="zoomFit" title="Ajuster (0)">Ajuster</button>
+      <button id="zoomWidth" title="Pleine largeur (w)">Largeur</button>
       <button id="zoom100" title="Taille réelle (1)">1:1</button>
       <button id="zoomIn" title="Zoom avant (+)">+</button>
     </div>
@@ -376,7 +377,7 @@ main { min-width: 0; padding: 18px 20px 60px; }
     <span class="zoomval" id="vZoom">100 %</span>
     <span id="vDims"></span>
     <span class="spacer" style="flex:1"></span>
-    <span>Molette&nbsp;: zoom · glisser&nbsp;: déplacer · double-clic&nbsp;: ajuster</span>
+    <span>Molette&nbsp;: zoom · glisser&nbsp;: déplacer · double-clic&nbsp;: ajuster · <kbd>w</kbd>&nbsp;: pleine largeur</span>
   </div>
 </section>
 
@@ -658,6 +659,15 @@ const CATALOG = {"source":{"repo":"Ignitetechnologies/Mindmap","branch":"main","
     if (center === "top") view.y = Math.max(12, Math.min(view.y, 40));
     applyTransform();
   }
+  function fitWidth() {
+    const box = stage.getBoundingClientRect();
+    const [w, h] = view.natural;
+    if (!w || !h) return;
+    view.scale = Math.min(box.width / w, 4);
+    view.x = 0;
+    view.y = 0;
+    applyTransform();
+  }
   function zoomAt(factor, cx, cy) {
     const box = stage.getBoundingClientRect();
     const px = (cx === undefined ? box.width / 2 : cx - box.left);
@@ -814,6 +824,7 @@ const CATALOG = {"source":{"repo":"Ignitetechnologies/Mindmap","branch":"main","
   $("#zoomIn").addEventListener("click", () => zoomAt(1.25));
   $("#zoomOut").addEventListener("click", () => zoomAt(1 / 1.25));
   $("#zoomFit").addEventListener("click", () => fit());
+  $("#zoomWidth").addEventListener("click", fitWidth);
   $("#zoom100").addEventListener("click", () => setScale(1));
   $("#vFav").addEventListener("click", () => { if (current.map) toggleFav(current.map.slug); });
 
@@ -833,6 +844,7 @@ const CATALOG = {"source":{"repo":"Ignitetechnologies/Mindmap","branch":"main","
     else if (ev.key === "+" || ev.key === "=") zoomAt(1.25);
     else if (ev.key === "-") zoomAt(1 / 1.25);
     else if (ev.key === "0") fit();
+    else if (ev.key.toLowerCase() === "w") fitWidth();
     else if (ev.key === "1") setScale(1);
     else if (ev.key.toLowerCase() === "f" && current.map) toggleFav(current.map.slug);
   });

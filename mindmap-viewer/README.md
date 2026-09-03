@@ -61,6 +61,7 @@ Le fichier fonctionne tel quel sur n'importe quel hébergement statique
 | `←` `→` | carte précédente / suivante |
 | `+` `−` | zoom avant / arrière |
 | `0` | ajuster à l'écran |
+| `w` | pleine largeur (lecture des cartes très hautes) |
 | `1` | taille réelle (1:1) |
 | `f` | ajouter/retirer des favoris |
 | `Échap` | fermer la visionneuse (ou vider la recherche) |
