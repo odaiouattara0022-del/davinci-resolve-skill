@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mindmap Atlas — Cyber Security</title>
+<meta name="description" content="Interface de consultation des mindmaps cybersécurité d'Ignitetechnologies/Mindmap : recherche, catégories, zoom, PDF.">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0b0f14;
+  --bg-soft: #10161d;
+  --panel: #141c25;
+  --panel-2: #1a2430;
+  --line: #24303d;
+  --line-soft: #1c2732;
+  --txt: #e6edf3;
+  --txt-dim: #9bacbd;
+  --txt-faint: #6b7d8f;
+  --accent: #4cc2ff;
+  --accent-ink: #04121c;
+  --gold: #ffc857;
+  --danger: #ff6b6b;
+  --radius: 12px;
+  --shadow: 0 10px 30px rgba(0,0,0,.45);
+  --header-h: 60px;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f9;
+  --bg-soft: #eceff4;
+  --panel: #ffffff;
+  --panel-2: #f2f5f9;
+  --line: #d7dee7;
+  --line-soft: #e4e9ef;
+  --txt: #16202b;
+  --txt-dim: #4d5f70;
+  --txt-faint: #7b8b9b;
+  --accent: #0b74c4;
+  --accent-ink: #ffffff;
+  --gold: #b8860b;
+  --shadow: 0 8px 24px rgba(20,35,50,.12);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--txt);
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: var(--header-h);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--bg-soft) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand .mark {
+  width: 30px; height: 30px; flex: none; border-radius: 9px;
+  background: linear-gradient(140deg, var(--accent), #7a5cff);
+  display: grid; place-items: center; color: #04121c; font-weight: 800; font-size: 15px;
+}
+.brand h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .2px; white-space: nowrap; }
+.brand small { display: block; font-weight: 500; color: var(--txt-faint); font-size: 11px; }
+
+.search {
+  flex: 1; max-width: 620px; position: relative; display: flex; align-items: center;
+}
+.search input {
+  width: 100%; height: 38px; padding: 0 88px 0 36px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  outline: none;
+}
+.search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.search .ico { position: absolute; left: 11px; color: var(--txt-faint); pointer-events: none; }
+.search .hint {
+  position: absolute; right: 10px; display: flex; gap: 6px; align-items: center;
+  color: var(--txt-faint); font-size: 11px;
+}
+kbd {
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px;
+  padding: 1px 5px; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--panel-2); color: var(--txt-dim);
+}
+.tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.btn {
+  height: 34px; padding: 0 11px; display: inline-flex; align-items: center; gap: 7px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  color: var(--txt-dim); white-space: nowrap;
+}
+.btn:hover { border-color: var(--accent); color: var(--txt); }
+.btn.icon { padding: 0; width: 34px; justify-content: center; }
+.btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+select.btn { appearance: none; padding-right: 26px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 15px, calc(100% - 10px) 15px;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+#menuBtn { display: none; }
+
+/* ---------- layout ---------- */
+.shell { display: grid; grid-template-columns: 252px 1fr; align-items: start; }
+.sidebar {
+  position: sticky; top: var(--header-h); height: calc(100vh - var(--header-h));
+  overflow-y: auto; padding: 14px 10px 28px;
+  border-right: 1px solid var(--line); background: var(--bg-soft);
+}
+.side-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--txt-faint); margin: 14px 8px 6px;
+}
+.side-title:first-child { margin-top: 0; }
+.cat {
+  width: 100%; display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; margin-bottom: 2px;
+  background: none; border: 0; border-radius: 9px;
+  color: var(--txt-dim); text-align: left; font-size: 13.5px;
+}
+.cat:hover { background: var(--panel); color: var(--txt); }
+.cat[aria-current="true"] { background: var(--panel-2); color: var(--txt); box-shadow: inset 2px 0 0 var(--accent); }
+.cat .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c, var(--accent)); }
+.cat .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat .n { color: var(--txt-faint); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.side-foot { margin: 18px 10px 0; padding-top: 14px; border-top: 1px solid var(--line-soft);
+  color: var(--txt-faint); font-size: 12px; }
+.side-foot a { color: var(--txt-dim); text-decoration: none; }
+.side-foot a:hover { color: var(--accent); }
+
+main { min-width: 0; padding: 18px 20px 60px; }
+.crumbs { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.crumbs h2 { margin: 0; font-size: 20px; letter-spacing: -.2px; }
+.crumbs .count { color: var(--txt-faint); font-size: 13px; }
+.crumbs .spacer { flex: 1; }
+
+/* ---------- cards ---------- */
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); }
+.card {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; text-align: left; padding: 0; color: inherit;
+  transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--shadow); }
+.thumb {
+  position: relative; aspect-ratio: 16 / 10; background: var(--panel-2);
+  display: grid; place-items: center; overflow: hidden; border-bottom: 1px solid var(--line-soft);
+}
+.thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.thumb .ph { color: var(--txt-faint); font-size: 12px; padding: 10px; text-align: center; }
+.card .meta { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.card h3 { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.3; }
+.card .sub { color: var(--txt-faint); font-size: 11.5px; display: flex; align-items: center; gap: 6px; }
+.badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
+.badge {
+  font-size: 10.5px; letter-spacing: .3px; padding: 2px 6px; border-radius: 5px;
+  border: 1px solid var(--line); color: var(--txt-faint); background: var(--panel-2);
+}
+.badge.hd { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.badge.pdf { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 45%, var(--line)); }
+.fav {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
+  background: color-mix(in srgb, #000 45%, transparent); border: 1px solid transparent;
+  color: #fff; opacity: 0; transition: opacity .12s ease;
+}
+.card:hover .fav, .fav[aria-pressed="true"] { opacity: 1; }
+.fav[aria-pressed="true"] { color: var(--gold); }
+
+/* list density */
+.grid.list { grid-template-columns: 1fr; gap: 6px; }
+.grid.list .card { flex-direction: row; align-items: center; gap: 12px; padding: 8px 12px; }
+.grid.list .thumb { display: none; }
+.grid.list .meta { padding: 0; flex-direction: row; align-items: center; gap: 12px; }
+.grid.list h3 { flex: 1; }
+.grid.list .fav { position: static; opacity: 1; background: none; }
+
+.empty { padding: 60px 10px; text-align: center; color: var(--txt-faint); }
+.empty b { display: block; color: var(--txt); font-size: 16px; margin-bottom: 6px; }
+
+/* ---------- viewer ---------- */
+.viewer {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column;
+  background: color-mix(in srgb, var(--bg) 96%, #000);
+}
+.viewer[hidden] { display: none; }
+.vbar {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  border-bottom: 1px solid var(--line); background: var(--bg-soft); flex-wrap: wrap;
+}
+.vtitle { min-width: 0; margin-right: auto; }
+.vtitle strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vtitle span { color: var(--txt-faint); font-size: 11.5px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--panel); }
+.seg button { border: 0; background: none; height: 32px; padding: 0 11px; color: var(--txt-dim); font-size: 12.5px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.stage {
+  position: relative; flex: 1; overflow: hidden; background:
+    repeating-conic-gradient(color-mix(in srgb, var(--bg) 82%, #000) 0% 25%, var(--bg) 0% 50%) 50% / 22px 22px;
+  cursor: grab; touch-action: none;
+}
+.stage.drag { cursor: grabbing; }
+.stage img {
+  position: absolute; top: 0; left: 0; transform-origin: 0 0;
+  max-width: none; user-select: none; -webkit-user-drag: none;
+  image-rendering: -webkit-optimize-contrast;
+}
+.stage .status {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--txt-dim); font-size: 13px; pointer-events: none; text-align: center; padding: 20px;
+}
+.stage .status[hidden] { display: none; }
+.spinner {
+  width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 10px;
+  border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.vfoot {
+  display: flex; align-items: center; gap: 10px; padding: 7px 12px;
+  border-top: 1px solid var(--line); background: var(--bg-soft);
+  color: var(--txt-faint); font-size: 12px; flex-wrap: wrap;
+}
+.vfoot .zoomval { font-variant-numeric: tabular-nums; min-width: 52px; }
+.nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 42px; height: 66px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg-soft) 85%, transparent);
+  border: 1px solid var(--line); color: var(--txt-dim); font-size: 20px;
+}
+.nav:hover { color: var(--txt); border-color: var(--accent); }
+.nav.prev { left: 10px; border-radius: 0 10px 10px 0; }
+.nav.next { right: 10px; border-radius: 10px 0 0 10px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(12px);
+  z-index: 80; padding: 9px 15px; border-radius: 10px; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.scrim { position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,.5); display: none; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; z-index: 26; left: 0; top: var(--header-h); width: 264px;
+    transform: translateX(-100%); transition: transform .18s ease;
+  }
+  body.nav-open .sidebar { transform: none; }
+  body.nav-open .scrim { display: block; }
+  #menuBtn { display: inline-flex; }
+  .brand small, .search .hint { display: none; }
+  main { padding: 14px 12px 50px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+}
+@media (max-width: 620px) {
+  :root { --header-h: 102px; }
+  .topbar { height: auto; flex-wrap: wrap; padding: 8px 10px; row-gap: 8px; }
+  .brand h1 { font-size: 14px; }
+  .brand small { display: block; }
+  .search { order: 3; flex: 1 0 100%; max-width: none; }
+  .search .hint { display: none; }
+  .tools { gap: 6px; }
+  .tools .lbl { display: none; }
+  .btn { padding: 0 9px; }
+  #sortSel { max-width: 132px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="btn icon" id="menuBtn" title="Catégories" aria-label="Catégories">☰</button>
+  <div class="brand">
+    <div class="mark">M</div>
+    <div>
+      <h1>Mindmap Atlas</h1>
+      <small>Ignitetechnologies/Mindmap</small>
+    </div>
+  </div>
+
+  <div class="search">
+    <span class="ico">⌕</span>
+    <input id="q" type="search" placeholder="Rechercher un mindmap, un outil, une technique…" autocomplete="off" spellcheck="false" aria-label="Rechercher">
+    <span class="hint"><kbd>/</kbd> pour chercher</span>
+  </div>
+
+  <div class="tools">
+    <select class="btn" id="sortSel" title="Trier" aria-label="Trier">
+      <option value="cat">Par catégorie</option>
+      <option value="az">A → Z</option>
+      <option value="za">Z → A</option>
+    </select>
+    <button class="btn icon" id="densityBtn" title="Grille / liste" aria-label="Basculer grille ou liste">▤</button>
+    <button class="btn icon" id="themeBtn" title="Thème clair / sombre" aria-label="Thème">◐</button>
+    <button class="btn icon" id="helpBtn" title="Aide et raccourcis" aria-label="Aide">?</button>
+  </div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-title">Collection</div>
+    <nav id="quickNav"></nav>
+    <div class="side-title">Catégories</div>
+    <nav id="catNav"></nav>
+    <div class="side-foot">
+      <div id="stats"></div>
+      <p style="margin:8px 0 0">
+        Source des images
+        <select class="btn" id="sourceSel" style="width:100%;margin-top:6px" aria-label="Source des images">
+          <option value="jsdelivr">CDN jsDelivr (rapide)</option>
+          <option value="raw">GitHub raw</option>
+          <option value="local">Fichiers locaux</option>
+        </select>
+      </p>
+      <p style="margin:12px 0 0">
+        <a href="https://github.com/Ignitetechnologies/Mindmap" target="_blank" rel="noopener">Dépôt d'origine ↗</a><br>
+        <a href="https://www.hackingarticles.in" target="_blank" rel="noopener">Hacking Articles ↗</a>
+      </p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="crumbs">
+      <h2 id="viewTitle">Tous les mindmaps</h2>
+      <span class="count" id="viewCount"></span>
+      <span class="spacer"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>
+      <b>Aucun résultat</b>
+      Essayez un autre mot-clé, ou réinitialisez la recherche.
+    </div>
+  </main>
+</div>
+
+<section class="viewer" id="viewer" hidden aria-modal="true" role="dialog" aria-label="Visionneuse">
+  <div class="vbar">
+    <div class="vtitle">
+      <strong id="vTitle"></strong>
+      <span id="vSub"></span>
+    </div>
+    <div class="seg" id="qualitySeg" role="group" aria-label="Qualité"></div>
+    <div class="seg">
+      <button id="zoomOut" title="Zoom arrière (-)">−</button>
+      <button id="zoomFit" title="Ajuster (0)">Ajuster</button>
+      <button id="zoom100" title="Taille réelle (1)">1:1</button>
+      <button id="zoomIn" title="Zoom avant (+)">+</button>
+    </div>
+    <button class="btn icon" id="vFav" title="Favori (f)" aria-pressed="false">★</button>
+    <a class="btn" id="vPdf" target="_blank" rel="noopener" title="Ouvrir le PDF"><span class="lbl">PDF</span></a>
+    <a class="btn" id="vRaw" target="_blank" rel="noopener" title="Ouvrir l'image en pleine résolution">↗</a>
+    <button class="btn icon" id="vClose" title="Fermer (Échap)" aria-label="Fermer">✕</button>
+  </div>
+  <div class="stage" id="stage">
+    <button class="nav prev" id="vPrev" title="Précédent (←)" aria-label="Précédent">‹</button>
+    <img id="vImg" alt="">
+    <button class="nav next" id="vNext" title="Suivant (→)" aria-label="Suivant">›</button>
+    <div class="status" id="vStatus"><div><div class="spinner"></div>Chargement…</div></div>
+  </div>
+  <div class="vfoot">
+    <span class="zoomval" id="vZoom">100 %</span>
+    <span id="vDims"></span>
+    <span class="spacer" style="flex:1"></span>
+    <span>Molette&nbsp;: zoom · glisser&nbsp;: déplacer · double-clic&nbsp;: ajuster</span>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* CATALOG:START */
+const CATALOG = {"source":{"repo":"Ignitetechnologies/Mindmap","branch":"main","url":"https://github.com/Ignitetechnologies/Mindmap"},"categories":["Active Directory","Reconnaissance & OSINT","Web & applications","Post-exploitation & privesc","Mots de passe & cracking","Réseau & wireless","Red Team & menaces","Blue Team & forensics","Cloud, DevOps & conteneurs","Gouvernance & conformité","Apprentissage & certifications","Outils & confidentialité"],"maps":[{"slug":"active-directory-pentesting","title":"Active Directory Pentesting","category":"Active Directory","dir":"","images":{"Normal":"Active Directory Pentesting.png"},"pdf":null,"keywords":"ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"ad-enumeration","title":"AD Enumeration","category":"Active Directory","dir":"AD Enumeration","images":{"Normal":"AD Enumeration/AD Enumeration Normal.png","HD":"AD Enumeration/AD Enumeration HD.png","UHD":"AD Enumeration/AD Enumeration UHD.png"},"pdf":"AD Enumeration/AD Enumeration.pdf","keywords":"AD Enumeration ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"ad-pentest","title":"AD Pentest","category":"Active Directory","dir":"AD Pentest","images":{"Normal":"AD Pentest/AD Pentest Normal.png","HD":"AD Pentest/AD Pentest HD.png","UHD":"AD Pentest/AD Pentest UHD.png"},"pdf":"AD Pentest/AD_Pentest_Mindmap.pdf","keywords":"AD Pentest ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"crackmapexec","title":"Crackmapexec","category":"Active Directory","dir":"Crackmapexec","images":{"Normal":"Crackmapexec/Crackmapexec Normal.png","HD":"Crackmapexec/Crackmapexec HD.png","UHD":"Crackmapexec/Crackmapexec UHD.png"},"pdf":"Crackmapexec/Crackmapexec.pdf","keywords":"Crackmapexec ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"htb-bloodhound-ctf","title":"HTB BloodHound CTF","category":"Active Directory","dir":"HTB/Bloodhound","images":{"Normal":"HTB/Bloodhound/HTB BloodHound CTF Normal.png","HD":"HTB/Bloodhound/HTB BloodHound CTF HD.png","UHD":"HTB/Bloodhound/HTB BloodHound CTF UHD.png"},"pdf":"HTB/Bloodhound/HTB BloodHound CTF.pdf","keywords":"HTB Bloodhound ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"impacket","title":"impacket","category":"Active Directory","dir":"Impacket","images":{"Normal":"Impacket/impacket Normal.png","HD":"Impacket/impacket HD.png","UHD":"Impacket/impacket UHD.png"},"pdf":"Impacket/impacket.pdf","keywords":"Impacket ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"mimikatz","title":"Mimikatz","category":"Active Directory","dir":"Mimikatz","images":{"Normal":"Mimikatz/Mimikatz Normal.png","HD":"Mimikatz/Mimikatz HD.png","UHD":"Mimikatz/Mimikatz UHD.png"},"pdf":"Mimikatz/Mimikatz.pdf","keywords":"Mimikatz ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"netexec-nxc-cheat-sheet","title":"NetExec (NXC) Cheat Sheet","category":"Active Directory","dir":"NXC","images":{"Normal":"NXC/NetExec (NXC) Cheat Sheet Normal.png","HD":"NXC/NetExec (NXC) Cheat Sheet HD.png","UHD":"NXC/NetExec (NXC) Cheat Sheet UHD.png"},"pdf":"NXC/NetExec (NXC) Cheat Sheet.pdf","keywords":"NXC ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"powershell-empire","title":"Powershell Empire","category":"Active Directory","dir":"Empire","images":{"Normal":"Empire/Powershell Empire Normal.png","HD":"Empire/Powershell Empire HD.png","UHD":"Empire/Powershell Empire UHD.png"},"pdf":"Empire/Powershell Empire.pdf","keywords":"Empire ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"smb-enumeration","title":"SMB Enumeration","category":"Active Directory","dir":"","images":{"Normal":"SMB Enumeration.png"},"pdf":null,"keywords":"ad kerberos ldap domaine domain controller bloodhound smb"},{"slug":"htb-cheat-sheet","title":"HTB Cheat Sheet","category":"Apprentissage & certifications","dir":"HTB","images":{"Normal":"HTB/HTB Cheat Sheet Normal.png","HD":"HTB/HTB Cheat Sheet HD.png","UHD":"HTB/HTB Cheat Sheet UHD.png"},"pdf":"HTB/HTB Cheat Sheet.pdf","keywords":"HTB training formation ctf lab certification exam"},{"slug":"oscp-practice-tools","title":"OSCP Practice Tools","category":"Apprentissage & certifications","dir":"","images":{"Normal":"OSCP Practice Tools.png"},"pdf":null,"keywords":"training formation ctf lab certification exam"},{"slug":"tryhackme","title":"Tryhackme","category":"Apprentissage & certifications","dir":"TryHackMe","images":{"Normal":"TryHackMe/Tryhackme Normal.png","HD":"TryHackMe/Tryhackme HD.png","UHD":"TryHackMe/Tryhackme UHD.png"},"pdf":"TryHackMe/Tryhackme.pdf","keywords":"TryHackMe training formation ctf lab certification exam"},{"slug":"blue-teaming","title":"Blue Teaming","category":"Blue Team & forensics","dir":"Blue Team","images":{"Normal":"Blue Team/Blue Teaming Normal.png","HD":"Blue Team/Blue Teaming HD.png","UHD":"Blue Team/Blue Teaming UHD.png"},"pdf":"Blue Team/Blue Teaming.pdf","keywords":"Blue Team defense defensive soc detection incident investigation malware"},{"slug":"defensive-linux-security-tools","title":"Defensive Linux Security Tools","category":"Blue Team & forensics","dir":"Tools/Defensive","images":{"Normal":"Tools/Defensive/Defensive Linux Security Tools Normal.png","HD":"Tools/Defensive/Defensive Linux Security Tools HD.png","UHD":"Tools/Defensive/Defensive Linux Security Tools UHD.png"},"pdf":"Tools/Defensive/Defensive Linux Security Tools.pdf","keywords":"Tools Defensive defense defensive soc detection incident investigation malware"},{"slug":"digital-forensics-tools","title":"Digital Forensics Tools","category":"Blue Team & forensics","dir":"Forensics","images":{"Normal":"Forensics/Digital Forensics Tools Normal.png","HD":"Forensics/Digital Forensics Tools HD.png","UHD":"Forensics/Digital Forensics Tools UHD.png"},"pdf":"Forensics/Digital Forensics Tools.pdf","keywords":"Forensics defense defensive soc detection incident investigation malware"},{"slug":"idapro-cheatsheet","title":"IDAPro Cheatsheet","category":"Blue Team & forensics","dir":"IDAPro","images":{"Normal":"IDAPro/IDAPro Cheatsheet Normal.png","HD":"IDAPro/IDAPro Cheatsheet HD.png","UHD":"IDAPro/IDAPro Cheatsheet UHD.png"},"pdf":"IDAPro/IDAPro Cheatsheet.pdf","keywords":"IDAPro defense defensive soc detection incident investigation malware"},{"slug":"security-automation","title":"Security Automation","category":"Blue Team & forensics","dir":"Security Automation","images":{"Normal":"Security Automation/Security Automation Normal.png","HD":"Security Automation/Security Automation HD.png","UHD":"Security Automation/Security Automation UHD.png"},"pdf":"Security Automation/Security Automation.pdf","keywords":"Security Automation defense defensive soc detection incident investigation malware"},{"slug":"cloud-security-framework","title":"Cloud Security Framework","category":"Cloud, DevOps & conteneurs","dir":"Cloud Security Framework","images":{"Normal":"Cloud Security Framework/Cloud Security Framework Normal.png","HD":"Cloud Security Framework/Cloud Security Framework HD.png","UHD":"Cloud Security Framework/Cloud Security Framework UHD.png"},"pdf":"Cloud Security Framework/Cloud Security Framework.pdf","keywords":"Cloud Security Framework cloud aws azure gcp docker kubernetes ci cd pipeline"},{"slug":"container-security","title":"Container Security","category":"Cloud, DevOps & conteneurs","dir":"Container Security","images":{"Normal":"Container Security/Container Security Normal.png","HD":"Container Security/Container Security HD.png","UHD":"Container Security/Container Security UHD.png"},"pdf":"Container Security/Container Security.pdf","keywords":"Container Security cloud aws azure gcp docker kubernetes ci cd pipeline"},{"slug":"devops-roadmap","title":"DevOps Roadmap","category":"Cloud, DevOps & conteneurs","dir":"Devops","images":{"Normal":"Devops/DevOps Roadmap Normal.png","HD":"Devops/DevOps Roadmap HD.png"},"pdf":"Devops/DevOps Roadmap.pdf","keywords":"Devops cloud aws azure gcp docker kubernetes ci cd pipeline"},{"slug":"devops-tools","title":"DevOps Tools","category":"Cloud, DevOps & conteneurs","dir":"Devops","images":{"Normal":"Devops/DevOps Tools Normal.png","HD":"Devops/DevOps Tools HD.png","UHD":"Devops/DevOps Tools UHD.png"},"pdf":"Devops/DevOps Tools.pdf","keywords":"Devops cloud aws azure gcp docker kubernetes ci cd pipeline"},{"slug":"docker-command-cheat-sheet","title":"Docker Command Cheat Sheet","category":"Cloud, DevOps & conteneurs","dir":"Docker CheatSheet","images":{"Normal":"Docker CheatSheet/Docker Command Cheat Sheet Normal.png","HD":"Docker CheatSheet/Docker Command Cheat Sheet HD.png","UHD":"Docker CheatSheet/Docker Command Cheat Sheet UHD.png"},"pdf":"Docker CheatSheet/Docker Command Cheat Sheet.pdf","keywords":"Docker CheatSheet cloud aws azure gcp docker kubernetes ci cd pipeline"},{"slug":"cyber-security-technologies","title":"Cyber Security Technologies","category":"Gouvernance & conformité","dir":"Cybersec Technologies","images":{"Normal":"Cybersec Technologies/Cyber Security Technologies Normal.png","HD":"Cybersec Technologies/Cyber Security Technologies HD.png","UHD":"Cybersec Technologies/Cyber Security Technologies UHD.png"},"pdf":"Cybersec Technologies/Cyber Security Technologies.pdf","keywords":"Cybersec Technologies compliance conformite norme standard audit rgpd risque"},{"slug":"fisma","title":"FISMA","category":"Gouvernance & conformité","dir":"FISMA","images":{"Normal":"FISMA/FISMA Normal.png","HD":"FISMA/FISMA HD.png","UHD":"FISMA/FISMA UHD.png"},"pdf":"FISMA/FISMA .pdf","keywords":"FISMA compliance conformite norme standard audit rgpd risque"},{"slug":"gdpr","title":"GDPR","category":"Gouvernance & conformité","dir":"GDPR","images":{"Normal":"GDPR/GDPR Normal.png","HD":"GDPR/GDPR HD.png","UHD":"GDPR/GDPR UHD.png"},"pdf":"GDPR/GDPR.pdf","keywords":"GDPR compliance conformite norme standard audit rgpd risque"},{"slug":"hippa","title":"HIPPA","category":"Gouvernance & conformité","dir":"HIPPA","images":{"Normal":"HIPPA/HIPPA Normal.png","HD":"HIPPA/HIPPA HD.png","UHD":"HIPPA/HIPPA UHD.png"},"pdf":"HIPPA/HIPPA.pdf","keywords":"HIPPA compliance conformite norme standard audit rgpd risque"},{"slug":"iso-27001-2022-controls","title":"ISO 27001-2022 Controls","category":"Gouvernance & conformité","dir":"ISO Control","images":{"Normal":"ISO Control/ISO 27001-2022 Controls Normal.png","HD":"ISO Control/ISO 27001-2022 Controls HD.png","UHD":"ISO Control/ISO 27001-2022 Controls UHD.png"},"pdf":"ISO Control/ISO 27001-2022 Controls.pdf","keywords":"ISO Control compliance conformite norme standard audit rgpd risque"},{"slug":"nist-cybersecurity-framework","title":"NIST CyberSecurity Framework","category":"Gouvernance & conformité","dir":"nist","images":{"Normal":"nist/NIST CyberSecurity Framework Normal.png","HD":"nist/NIST CyberSecurity Framework HD.png","UHD":"nist/NIST CyberSecurity Framework UHD.png"},"pdf":"nist/NIST CyberSecurity Framework.pdf","keywords":"nist compliance conformite norme standard audit rgpd risque"},{"slug":"security-360","title":"Security 360°","category":"Gouvernance & conformité","dir":"Security 360","images":{"Normal":"Security 360/Security 360° Normal.png","HD":"Security 360/Security 360° HD.png","UHD":"Security 360/Security 360° UHD.png"},"pdf":"Security 360/Security 360°.pdf","keywords":"Security 360 compliance conformite norme standard audit rgpd risque"},{"slug":"soc-2","title":"SOC 2","category":"Gouvernance & conformité","dir":"SOC 2","images":{"Normal":"SOC 2/SOC 2 Normal.png","HD":"SOC 2/SOC2 HD.png","UHD":"SOC 2/SOC2 UHD.png"},"pdf":"SOC 2/SOC 2.pdf","keywords":"SOC 2 compliance conformite norme standard audit rgpd risque"},{"slug":"hashcat","title":"Hashcat","category":"Mots de passe & cracking","dir":"hashcat","images":{"Normal":"hashcat/Hashcat Normal.png","HD":"hashcat/Hashcat HD.png","UHD":"hashcat/Hashcat UHD.png"},"pdf":"hashcat/Hashcat.pdf","keywords":"hashcat password hash bruteforce brute force wordlist mot de passe"},{"slug":"hydra","title":"hydra","category":"Mots de passe & cracking","dir":"hydra","images":{"Normal":"hydra/hydra Normal.png","HD":"hydra/hydra HD.png","UHD":"hydra/hydra UHD.png"},"pdf":"hydra/hydra.pdf","keywords":"hydra password hash bruteforce brute force wordlist mot de passe"},{"slug":"john","title":"John","category":"Mots de passe & cracking","dir":"John","images":{"Normal":"John/John Normal.png","HD":"John/John HD.png","UHD":"John/John UHD.png"},"pdf":"John/John.pdf","keywords":"John password hash bruteforce brute force wordlist mot de passe"},{"slug":"john-the-ripper-converter","title":"John The Ripper Converter","category":"Mots de passe & cracking","dir":"John","images":{"Normal":"John/John The Ripper Converter Normal.png","HD":"John/John The Ripper Converter HD.png","UHD":"John/John The Ripper Converter UHD.png"},"pdf":"John/John The Ripper Converter.pdf","keywords":"John password hash bruteforce brute force wordlist mot de passe"},{"slug":"medusa","title":"medusa","category":"Mots de passe & cracking","dir":"medusa","images":{"Normal":"medusa/medusa Normal.png","HD":"medusa/medusa HD.png","UHD":"medusa/medusa UHD.png"},"pdf":"medusa/medusa.pdf","keywords":"medusa password hash bruteforce brute force wordlist mot de passe"},{"slug":"wordlists-generator","title":"Wordlists Generator","category":"Mots de passe & cracking","dir":"","images":{"Normal":"Wordlists Generator.png"},"pdf":null,"keywords":"password hash bruteforce brute force wordlist mot de passe"},{"slug":"bug-bounty-tools","title":"Bug Bounty Tools","category":"Outils & confidentialité","dir":"Tools","images":{"Normal":"Tools/Bug Bounty Tools Normal.png","HD":"Tools/Bug Bounty Tools HD.png","UHD":"Tools/Bug Bounty Tools UHD.png"},"pdf":"Tools/Bug Bounty Tools.pdf","keywords":"Tools tools outils vie privee privacy anonymat addons"},{"slug":"firefox-pentest-add-ons","title":"Firefox Pentest ADD-ONS","category":"Outils & confidentialité","dir":"Firefox Pentest Addons","images":{"Normal":"Firefox Pentest Addons/Firefox Pentest ADD-ONS Normal.png","HD":"Firefox Pentest Addons/Firefox Pentest ADD-ONS HD.png","UHD":"Firefox Pentest Addons/Firefox Pentest ADD-ONS UHD.png"},"pdf":"Firefox Pentest Addons/Firefox Pentest ADD-ONS.pdf","keywords":"Firefox Pentest Addons tools outils vie privee privacy anonymat addons"},{"slug":"offensive-linux-security-tools","title":"Offensive Linux Security Tools","category":"Outils & confidentialité","dir":"Tools/Offensive Security","images":{"Normal":"Tools/Offensive Security/Offensive_Linux_Security_Tools Normal.png","HD":"Tools/Offensive Security/Offensive_Linux_Security_Tools HD.png","UHD":"Tools/Offensive Security/Offensive_Linux_Security_Tools UHD.png"},"pdf":"Tools/Offensive Security/Offensive_Linux_Security_Tools.pdf","keywords":"Tools Offensive Security tools outils vie privee privacy anonymat addons"},{"slug":"penetration-testing-tools","title":"Penetration Testing Tools","category":"Outils & confidentialité","dir":"Tools","images":{"Normal":"Tools/Penetration Testing Tools Normal.png","HD":"Tools/Penetration Testing Tools HD.png","UHD":"Tools/Penetration Testing Tools UHD.png"},"pdf":"Tools/Penetration Testing Tools.pdf","keywords":"Tools tools outils vie privee privacy anonymat addons"},{"slug":"privacy-email-accounts","title":"Privacy Email Accounts","category":"Outils & confidentialité","dir":"","images":{"Normal":"Privacy Email Accounts.png"},"pdf":null,"keywords":"tools outils vie privee privacy anonymat addons"},{"slug":"privacy-tools","title":"Privacy Tools","category":"Outils & confidentialité","dir":"Privacy Tools","images":{"Normal":"Privacy Tools/Privacy Tools Normal.png","HD":"Privacy Tools/Privacy Tools HD.png","UHD":"Privacy Tools/Privacy Tools UHD.png"},"pdf":"Privacy Tools/Privacy Tools.pdf","keywords":"Privacy Tools tools outils vie privee privacy anonymat addons"},{"slug":"red-team-blue-team-tools","title":"Red Team & Blue Team Tools","category":"Outils & confidentialité","dir":"Tools","images":{"Normal":"Tools/Red Team & Blue Team Tools Normal.png","HD":"Tools/Red Team & Blue Team Tools HD.png","UHD":"Tools/Red Team & Blue Team Tools UHD.png"},"pdf":"Tools/Red Team And Blue Team Tools.pdf","keywords":"Tools tools outils vie privee privacy anonymat addons"},{"slug":"capabilities-privilege-escalation","title":"Capabilities Privilege Escalation","category":"Post-exploitation & privesc","dir":"Gtfobin","images":{"Normal":"Gtfobin/Capabilities Privilege Escalation Normal.png","HD":"Gtfobin/Capabilities Privilege Escalation HD.png","UHD":"Gtfobin/Capabilities Privilege Escalation UHD.png"},"pdf":"Gtfobin/Capabilities Privilege Escalation.pdf","keywords":"Gtfobin privilege escalation elevation privileges pivot tunneling shell"},{"slug":"htb-pivoting-tunneling-port-forwarding-cheat-sheet","title":"HTB Pivoting, Tunneling & Port Forwarding Cheat Sheet","category":"Post-exploitation & privesc","dir":"HTB/Tunneling","images":{"Normal":"HTB/Tunneling/HTB Pivoting, Tunneling &  Port Forwarding Cheat Sheet HD Normal.png","HD":"HTB/Tunneling/HTB Pivoting, Tunneling &  Port Forwarding Cheat Sheet HD.png","UHD":"HTB/Tunneling/HTB Pivoting, Tunneling &  Port Forwarding Cheat Sheet UHD.png"},"pdf":"HTB/Tunneling/HTB Pivoting, Tunneling &  Port Forwarding Cheat Sheet.pdf","keywords":"HTB Tunneling privilege escalation elevation privileges pivot tunneling shell"},{"slug":"linux-privs","title":"Linux Privs","category":"Post-exploitation & privesc","dir":"Linux Privs","images":{"Normal":"Linux Privs/Linux Privs Normal.png","HD":"Linux Privs/Linux Privs HD.png","UHD":"Linux Privs/Linux Privs UHD.png"},"pdf":"Linux Privs/Linux Privs.pdf","keywords":"Linux Privs privilege escalation elevation privileges pivot tunneling shell"},{"slug":"metasploit-framework","title":"Metasploit Framework","category":"Post-exploitation & privesc","dir":"Metasploit","images":{"Normal":"Metasploit/Metasploit Framework Normal.png","HD":"Metasploit/Metasploit Framework HD.png","UHD":"Metasploit/Metasploit Framework UHD.png"},"pdf":"Metasploit/Metasploit Framework.pdf","keywords":"Metasploit privilege escalation elevation privileges pivot tunneling shell"},{"slug":"meterpreter-android","title":"Meterpreter Android","category":"Post-exploitation & privesc","dir":"Metasploit","images":{"Normal":"Metasploit/Meterpreter Android Normal.png","HD":"Metasploit/Meterpreter Android HD.png","UHD":"Metasploit/Meterpreter Android UHD.png"},"pdf":"Metasploit/Meterpreter Android.pdf","keywords":"Metasploit privilege escalation elevation privileges pivot tunneling shell"},{"slug":"privs-tools","title":"Privs Tools","category":"Post-exploitation & privesc","dir":"","images":{"Normal":"Privs Tools.png"},"pdf":null,"keywords":"privilege escalation elevation privileges pivot tunneling shell"},{"slug":"vulnhub-privilege-escalation","title":"Vulnhub Privilege Escalation","category":"Post-exploitation & privesc","dir":"Vulnhub","images":{"Normal":"Vulnhub/ Vulnhub Privs Cheatsheet Normal.png","HD":"Vulnhub/ Vulnhub Privs Cheatsheet HD.png","UHD":"Vulnhub/ Vulnhub Privs Cheatsheet UHD.png"},"pdf":"Vulnhub/Privilege Escalation Cheatsheet.pdf","keywords":"Vulnhub privilege escalation elevation privileges pivot tunneling shell"},{"slug":"windows-meterpreter","title":"Windows Meterpreter","category":"Post-exploitation & privesc","dir":"Metasploit","images":{"Normal":"Metasploit/Windows Meterpreter Normal.png","HD":"Metasploit/Windows Meterpreter HD.png","UHD":"Metasploit/Windows Meterpreter UHD.png"},"pdf":"Metasploit/Windows Meterpreter.pdf","keywords":"Metasploit privilege escalation elevation privileges pivot tunneling shell"},{"slug":"windows-privileges","title":"Windows Privileges","category":"Post-exploitation & privesc","dir":"Windows Privileges","images":{"Normal":"Windows Privileges/Windows Privileges Normal.png","HD":"Windows Privileges/Windows Privileges HD.png","UHD":"Windows Privileges/Windows Privileges UHD.png"},"pdf":"Windows Privileges/Windows Privileges.pdf","keywords":"Windows Privileges privilege escalation elevation privileges pivot tunneling shell"},{"slug":"windows-privs","title":"Windows Privs","category":"Post-exploitation & privesc","dir":"Windows Privs","images":{"Normal":"Windows Privs/Windows Privs Normal.png","HD":"Windows Privs/Windows Privs HD.png","UHD":"Windows Privs/Windows Privs UHD.png"},"pdf":"Windows Privs/Windows Privs.pdf","keywords":"Windows Privs privilege escalation elevation privileges pivot tunneling shell"},{"slug":"censys","title":"Censys","category":"Reconnaissance & OSINT","dir":"Censys","images":{"Normal":"Censys/Censys Normal.png","HD":"Censys/Censys HD.png","UHD":"Censys/Censys UHD.png"},"pdf":"Censys/Censys.pdf","keywords":"Censys recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"enumeration","title":"Enumeration","category":"Reconnaissance & OSINT","dir":"Enumeration","images":{"Normal":"Enumeration/Enumeration Normal.png","HD":"Enumeration/Enumeration HD.png"},"pdf":"Enumeration/Enumeration Mindmap.pdf","keywords":"Enumeration recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"github-dorks","title":"Github Dorks","category":"Reconnaissance & OSINT","dir":"Github Dorks","images":{"Normal":"Github Dorks/Github Dorks Normal.png","HD":"Github Dorks/Github Dorks HD.png","UHD":"Github Dorks/Github Dorks UHD.png"},"pdf":"Github Dorks/Github Dorks.pdf","keywords":"Github Dorks recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"google-hacking-dorks","title":"Google Hacking Dorks","category":"Reconnaissance & OSINT","dir":"Google Dorks","images":{"Normal":"Google Dorks/Google Hacking Dorks Normal.png","HD":"Google Dorks/Google Hacking Dorks HD.png","UHD":"Google Dorks/Google Hacking Dorks UHD.png"},"pdf":"Google Dorks/Google Hacking Dorks.pdf","keywords":"Google Dorks recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"google-search-operators","title":"Google Search Operators","category":"Reconnaissance & OSINT","dir":"Google Search Operators","images":{"Normal":"Google Search Operators/Google Search Operators Normal.png","HD":"Google Search Operators/Google Search Operators HD.png","UHD":"Google Search Operators/Google Search Operators UHD.png"},"pdf":"Google Search Operators/Google Search Operators .pdf","keywords":"Google Search Operators recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"nmap","title":"nmap","category":"Reconnaissance & OSINT","dir":"Nmap","images":{"Normal":"Nmap/nmap Normal.png","HD":"Nmap/nmap HD.png","UHD":"Nmap/nmap UHD.png"},"pdf":"Nmap/nmap.pdf","keywords":"Nmap recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"nmap-scan","title":"Nmap Scan","category":"Reconnaissance & OSINT","dir":"Other","images":{"Normal":"Other/Nmap Scan.jpg"},"pdf":null,"keywords":"Other recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"osint-framework","title":"OSINT Framework","category":"Reconnaissance & OSINT","dir":"OSINT","images":{"Normal":"OSINT/OSINT Framework Normal.png","HD":"OSINT/OSINT Framework HD.png","UHD":"OSINT/OSINT Framework UHD.png"},"pdf":"OSINT/OSINT Framework.pdf","keywords":"OSINT recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"privacy-search-engine","title":"privacy Search Engine","category":"Reconnaissance & OSINT","dir":"","images":{"Normal":"privacy Search Engine.png"},"pdf":null,"keywords":"recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"red-team-dorks","title":"Red Team Dorks","category":"Reconnaissance & OSINT","dir":"Red Team Dorks","images":{"Normal":"Red Team Dorks/Red Team Dorks Normal.png","HD":"Red Team Dorks/Red Team Dorks HD.png","UHD":"Red Team Dorks/Red Team Dorks UHD.png"},"pdf":"Red Team Dorks/Red Team Dorks.pdf","keywords":"Red Team Dorks recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"search-engine-for-pentester","title":"Search Engine for Pentester","category":"Reconnaissance & OSINT","dir":"Serach Engine for Pentester","images":{"HD":"Serach Engine for Pentester/Search Engine for Pentester HD.png","UHD":"Serach Engine for Pentester/Search Engine for Pentester UHD.png"},"pdf":"Serach Engine for Pentester/Search Engine for Pentester.pdf","keywords":"Serach Engine for Pentester recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"shodan","title":"Shodan","category":"Reconnaissance & OSINT","dir":"Shodan","images":{"Normal":"Shodan/Shodan Normal.png","HD":"Shodan/Shodan HD.png","UHD":"Shodan/Shodan UHD.png"},"pdf":"Shodan/Shodan Filters.pdf","keywords":"Shodan recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"subdomain-enumeration-tools","title":"Subdomain Enumeration Tools","category":"Reconnaissance & OSINT","dir":"Subdomain Enumeration","images":{"Normal":"Subdomain Enumeration/Subdomain Enumeration Tools Normal.png","HD":"Subdomain Enumeration/Subdomain Enumeration Tools HD.png","UHD":"Subdomain Enumeration/Subdomain Enumeration Tools UHD.png"},"pdf":"Subdomain Enumeration/Subdomain Enumeration Tools.pdf","keywords":"Subdomain Enumeration recon reconnaissance osint scan dorks moteur recherche enumeration"},{"slug":"android-attack","title":"Android Attack","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Android Attack Normal.png","HD":"Mitre Attack/Android Attack HD.png","UHD":"Mitre Attack/Android Attack UHD.png"},"pdf":"Mitre Attack/Android Attack.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"att-ck-matrix-enterprise","title":"ATT&CK Matrix (Enterprise)","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/ATTCK Matrix Normal.png","HD":"Mitre Attack/ATTCK Matrix HD.png","UHD":"Mitre Attack/ATTCK Matrix UHD.png"},"pdf":"Mitre Attack/ATTCK Matrix for Enterprise.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"cloud-matrix","title":"Cloud Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Cloud Matrix Normal.png","HD":"Mitre Attack/Cloud Matrix HD.png","UHD":"Mitre Attack/Cloud Matrix UHD.png"},"pdf":"Mitre Attack/Cloud Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"command-and-control","title":"Command and Control","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Command and Control Normal.png","HD":"Mitre Attack/Command and Control HD.png","UHD":"Mitre Attack/Command and Control UHD.png"},"pdf":"Mitre Attack/Command and Control.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"containers-matrix","title":"Containers Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Containers Matrix Normal.png","HD":"Mitre Attack/Containers Matrix HD.png","UHD":"Mitre Attack/Containers Matrix UHD.png"},"pdf":"Mitre Attack/Containers Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"credential-access","title":"Credential Access","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Credential Access Normal.png","HD":"Mitre Attack/Credential Access HD.png","UHD":"Mitre Attack/Credential Access UHD.png"},"pdf":"Mitre Attack/Credential Access.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"cyber-security-attacks","title":"Cyber Security Attacks","category":"Red Team & menaces","dir":"Cyber Security Attack","images":{"Normal":"Cyber Security Attack/Cyber Security Attacks Normal.png","HD":"Cyber Security Attack/Cyber Security Attacks HD.png","UHD":"Cyber Security Attack/Cyber Security Attacks UHD.png"},"pdf":"Cyber Security Attack/Types of Cyber Security Attacks.pdf","keywords":"Cyber Security Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"defend-mitre","title":"Defend Mitre","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Defend Mitre Normal.png","HD":"Mitre Attack/Defend Mitre HD.png","UHD":"Mitre Attack/Defend Mitre UHD.png"},"pdf":"Mitre Attack/Defend Mitre.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"defense-evasion","title":"Defense Evasion","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Defense Evasion Normal.png","HD":"Mitre Attack/Defense Evasion HD.png","UHD":"Mitre Attack/Defense Evasion UHD.png"},"pdf":"Mitre Attack/Defense Evasion.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"famous-cyber-security-hack","title":"Famous Cyber Security Hack","category":"Red Team & menaces","dir":"Cyber Hack","images":{"Normal":"Cyber Hack/Famous Cyber Security Hack Normal.png","HD":"Cyber Hack/Famous Cyber Security Hack HD.png","UHD":"Cyber Hack/Famous Cyber Security Hack UHD.png"},"pdf":"Cyber Hack/Famous Cyber Security Hack.pdf","keywords":"Cyber Hack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"ios-attack","title":"iOS Attack","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/iOS Attack Normal.png","HD":"Mitre Attack/iOS Attack HD.png","UHD":"Mitre Attack/iOS Attack UHD.png"},"pdf":"Mitre Attack/iOS Attack.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"linux-matrix","title":"Linux Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Linux Matrix Normal.png","HD":"Mitre Attack/Linux Matrix HD.png","UHD":"Mitre Attack/Linux Matrix UHD.png"},"pdf":"Mitre Attack/Linux Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"list-of-ransomware","title":"List of Ransomware","category":"Red Team & menaces","dir":"Ransomware","images":{"Normal":"Ransomware/List of Ransomware Normal.png","HD":"Ransomware/List of Ransomware HD.png","UHD":"Ransomware/List of Ransomware UHD.png"},"pdf":"Ransomware/List of Ransomware.pdf","keywords":"Ransomware attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"macos-matrix","title":"macOS Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/macOS Matrix Normal.png","HD":"Mitre Attack/macOS Matrix HD.png","UHD":"Mitre Attack/macOS Matrix UHD.png"},"pdf":"Mitre Attack/macOS Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"mobile-tactics","title":"Mobile Tactics","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Mobile Tactics Normal.png","HD":"Mitre Attack/Mobile Tactics HD.png","UHD":"Mitre Attack/Mobile Tactics UHD.png"},"pdf":"Mitre Attack/Mobile Tactics.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"network-matrix","title":"Network Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Network Matrix Normal.png","HD":"Mitre Attack/Network Matrix HD.png","UHD":"Mitre Attack/Network Matrix UHD.png"},"pdf":"Mitre Attack/Network Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"red-teaming","title":"Red Teaming","category":"Red Team & menaces","dir":"Red Teaming","images":{"Normal":"Red Teaming/Red Teaming Normal.png","HD":"Red Teaming/Red Teaming HD.png","UHD":"Red Teaming/Red Teaming UHD.png"},"pdf":"Red Teaming/Red Teaming.pdf","keywords":"Red Teaming attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"social-engineering-attack","title":"Social Engineering Attack","category":"Red Team & menaces","dir":"Social Engineering","images":{"Normal":"Social Engineering/Social Engineering Attack Normal.png","HD":"Social Engineering/Social Engineering Attack HD.png","UHD":"Social Engineering/Social Engineering Attack UHD.png"},"pdf":"Social Engineering/Types of Social Engineering Attacks.pdf","keywords":"Social Engineering attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"windows-matrix","title":"Windows Matrix","category":"Red Team & menaces","dir":"Mitre Attack","images":{"Normal":"Mitre Attack/Windows Matrix Normal.png","HD":"Mitre Attack/Windows Matrix HD.png","UHD":"Mitre Attack/Windows Matrix UHD.png"},"pdf":"Mitre Attack/Windows Matrix.pdf","keywords":"Mitre Attack attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"zero-day-cves-2023","title":"Zero-Day CVEs (2023)","category":"Red Team & menaces","dir":"Zero-Day CVEs (2023)","images":{"Normal":"Zero-Day CVEs (2023)/Zero-Day CVEs (2023) Normal.png","HD":"Zero-Day CVEs (2023)/Zero-Day CVEs (2023) HD.png","UHD":"Zero-Day CVEs (2023)/Zero-Day CVEs (2023) UHD.png"},"pdf":"Zero-Day CVEs (2023)/Zero-Day CVEs (2023).pdf","keywords":"Zero-Day CVEs (2023) attaque attack adversaire ttp mitre ransomware phishing cve"},{"slug":"aircrack-ng","title":"Aircrack-ng","category":"Réseau & wireless","dir":"aircrack","images":{"Normal":"aircrack/Aircrack-ng .png","HD":"aircrack/Aircrack-ng HD.png","UHD":"aircrack/Aircrack-ng  UHD.png"},"pdf":"aircrack/Aircrack-ng .pdf","keywords":"aircrack network reseau wifi wireless paquets packets sniffing capture"},{"slug":"icmp-status-code","title":"ICMP Status Code","category":"Réseau & wireless","dir":"ICMP","images":{"Normal":"ICMP/ICMP Status Code Normal.png","HD":"ICMP/ICMP Status Code HD.png","UHD":"ICMP/ICMP Status Code UHD.png"},"pdf":"ICMP/ICMP Status Code.pdf","keywords":"ICMP network reseau wifi wireless paquets packets sniffing capture"},{"slug":"tcpdump","title":"tcpdump","category":"Réseau & wireless","dir":"Tcpdump","images":{"Normal":"Tcpdump/tcpdump Normal.png","HD":"Tcpdump/tcpdump HD.png","UHD":"Tcpdump/tcpdump UHD.png"},"pdf":"Tcpdump/tcpdump.pdf","keywords":"Tcpdump network reseau wifi wireless paquets packets sniffing capture"},{"slug":"tshark","title":"TShark","category":"Réseau & wireless","dir":"Tshark","images":{"Normal":"Tshark/TShark Normal.png","HD":"Tshark/TShark HD.png","UHD":"Tshark/TShark UHD.png"},"pdf":"Tshark/TShark.pdf","keywords":"Tshark network reseau wifi wireless paquets packets sniffing capture"},{"slug":"wireless-pentest-tools","title":"Wireless Pentest Tools","category":"Réseau & wireless","dir":"Wireless Pentest Tools","images":{"Normal":"Wireless Pentest Tools/Wireless Pentest Tools Normal.png","HD":"Wireless Pentest Tools/Wireless Pentest Tools HD.png","UHD":"Wireless Pentest Tools/Wireless Pentest Tools UHD.png"},"pdf":"Wireless Pentest Tools/Wireless Pentest Tools.pdf","keywords":"Wireless Pentest Tools network reseau wifi wireless paquets packets sniffing capture"},{"slug":"wireshark","title":"Wireshark","category":"Réseau & wireless","dir":"Wireshark","images":{"Normal":"Wireshark/Wireshark Normal.png","HD":"Wireshark/Wireshark HD.png","UHD":"Wireshark/Wireshark UHD.png"},"pdf":"Wireshark/Wireshark.pdf","keywords":"Wireshark network reseau wifi wireless paquets packets sniffing capture"},{"slug":"wireshark-display-filter","title":"Wireshark Display Filter","category":"Réseau & wireless","dir":"Wireshark","images":{"Normal":"Wireshark/Wireshark Display Filter Normal.png","HD":"Wireshark/Wireshark Display Filter HD.png","UHD":"Wireshark/Wireshark Display Filter UHD.png"},"pdf":"Wireshark/Wireshark Display Filter.pdf","keywords":"Wireshark network reseau wifi wireless paquets packets sniffing capture"},{"slug":"burp-extensions","title":"Burp Extensions","category":"Web & applications","dir":"Burp Suite","images":{"Normal":"Burp Suite/Burp Extensions Normal.png","HD":"Burp Suite/Burp Extensions HD.png","UHD":"Burp Suite/Burp Extensions UHD.png"},"pdf":"Burp Suite/Burp Extensions.pdf","keywords":"Burp Suite web http api xss sqli injection fuzzing bug bounty"},{"slug":"burp-suite","title":"Burp Suite","category":"Web & applications","dir":"Burp Suite","images":{"Normal":"Burp Suite/Burp Suite Normal.png","HD":"Burp Suite/Burp Suite HD.png","UHD":"Burp Suite/Burp Suite UHD.png"},"pdf":"Burp Suite/Burp Suite.pdf","keywords":"Burp Suite web http api xss sqli injection fuzzing bug bounty"},{"slug":"burpsuite","title":"Burpsuite","category":"Web & applications","dir":"","images":{"Normal":"Burpsuite.png"},"pdf":null,"keywords":"web http api xss sqli injection fuzzing bug bounty"},{"slug":"feroxbuster","title":"Feroxbuster","category":"Web & applications","dir":"Feroxbuster","images":{"Normal":"Feroxbuster/Feroxbuster Normal.png","HD":"Feroxbuster/Feroxbuster HD.png","UHD":"Feroxbuster/Feroxbuster UHD.png"},"pdf":"Feroxbuster/Feroxbuster.pdf","keywords":"Feroxbuster web http api xss sqli injection fuzzing bug bounty"},{"slug":"ffuf","title":"FFUF","category":"Web & applications","dir":"ffuf","images":{"Normal":"ffuf/FFUF Normal.png","HD":"ffuf/FFUF HD.png","UHD":"ffuf/FFUF UHD.png"},"pdf":"ffuf/FFUF.pdf","keywords":"ffuf web http api xss sqli injection fuzzing bug bounty"},{"slug":"gobuster","title":"gobuster","category":"Web & applications","dir":"gobuster","images":{"Normal":"gobuster/gobuster Normal.png","HD":"gobuster/gobuster HD.png","UHD":"gobuster/gobuster UHD.png"},"pdf":"gobuster/gobuster.pdf","keywords":"gobuster web http api xss sqli injection fuzzing bug bounty"},{"slug":"htb-web-cheat-sheet","title":"HTB Web Cheat Sheet","category":"Web & applications","dir":"HTB/Web","images":{"Normal":"HTB/Web/HTB Normal.png","HD":"HTB/Web/HTB HD.png","UHD":"HTB/Web/HTB UHD.png"},"pdf":"HTB/Web/HTB.pdf","keywords":"HTB Web web http api xss sqli injection fuzzing bug bounty"},{"slug":"http-status-codes","title":"HTTP Status Codes","category":"Web & applications","dir":"HTTP Status Code","images":{"Normal":"HTTP Status Code/HTTP Status Codes Normal.png","HD":"HTTP Status Code/HTTP Status Codes HD.png","UHD":"HTTP Status Code/HTTP Status Codes UHD.png"},"pdf":"HTTP Status Code/HTTP Status Codes.pdf","keywords":"HTTP Status Code web http api xss sqli injection fuzzing bug bounty"},{"slug":"httpx","title":"HTTPX","category":"Web & applications","dir":"httpx","images":{"Normal":"httpx/HTTPX Normal.png","HD":"httpx/HTTPX HD.png","UHD":"httpx/HTTPX UHD.png"},"pdf":"httpx/HTTPX.pdf","keywords":"httpx web http api xss sqli injection fuzzing bug bounty"},{"slug":"owasp-mobile","title":"OWASP Mobile","category":"Web & applications","dir":"Owasp","images":{"Normal":"Owasp/OWASP Mobile Normal.png","HD":"Owasp/OWASP Mobile HD.png","UHD":"Owasp/OWASP Mobile UHD.png"},"pdf":"Owasp/OWASP Mobile Top 10.pdf","keywords":"Owasp web http api xss sqli injection fuzzing bug bounty"},{"slug":"owasp-testing-checklist","title":"OWASP Testing Checklist","category":"Web & applications","dir":"Owasp","images":{"Normal":"Owasp/OWASP Testing Checklist Normal.png","HD":"Owasp/OWASP Testing Checklist HD.png","UHD":"Owasp/OWASP Testing Checklist UHD.png"},"pdf":"Owasp/OWASP Testing Checklist.pdf","keywords":"Owasp web http api xss sqli injection fuzzing bug bounty"},{"slug":"owasp-web","title":"OWASP Web","category":"Web & applications","dir":"Owasp","images":{"Normal":"Owasp/OWASP Web Normal.png","HD":"Owasp/OWASP Web HD.png","UHD":"Owasp/OWASP Web UHD.png"},"pdf":"Owasp/OWASP Web.pdf","keywords":"Owasp web http api xss sqli injection fuzzing bug bounty"},{"slug":"sqlmap","title":"Sqlmap","category":"Web & applications","dir":"Sqlmap","images":{"Normal":"Sqlmap/Sqlmap Normal.png","HD":"Sqlmap/Sqlmap HD.png","UHD":"Sqlmap/Sqlmap UHD.png"},"pdf":"Sqlmap/Sqlmap.pdf","keywords":"Sqlmap web http api xss sqli injection fuzzing bug bounty"},{"slug":"ssrf-tools","title":"SSRF Tools","category":"Web & applications","dir":"SSRF Tools","images":{"Normal":"SSRF Tools/SSRF Tools Normal.png","HD":"SSRF Tools/SSRF Tools HD.png","UHD":"SSRF Tools/SSRF Tools UHD.png"},"pdf":"SSRF Tools/SSRF Tools.pdf","keywords":"SSRF Tools web http api xss sqli injection fuzzing bug bounty"},{"slug":"vulnerability-scanners","title":"Vulnerability Scanners","category":"Web & applications","dir":"Vulnerability Scanners","images":{"Normal":"Vulnerability Scanners/Vulnerability Scanners Normal.png","HD":"Vulnerability Scanners/Vulnerability Scanners HD.png","UHD":"Vulnerability Scanners/Vulnerability Scanners UHD.png"},"pdf":"Vulnerability Scanners/Vulnerability Scanners.pdf","keywords":"Vulnerability Scanners web http api xss sqli injection fuzzing bug bounty"},{"slug":"web-directory-scanners","title":"Web Directory Scanners","category":"Web & applications","dir":"","images":{"Normal":"Web Directory Scanners.png"},"pdf":null,"keywords":"web http api xss sqli injection fuzzing bug bounty"},{"slug":"web-pentest-lab-docker","title":"Web Pentest Lab (Docker)","category":"Web & applications","dir":"Web App Docker","images":{"Normal":"Web App Docker/Web Lab Docker Normal.png","HD":"Web App Docker/Web Lab Docker HD.png","UHD":"Web App Docker/Web Lab Docker UHD.png"},"pdf":"Web App Docker/Web Application Pentest Lab setup Using Docker.pdf","keywords":"Web App Docker web http api xss sqli injection fuzzing bug bounty"},{"slug":"wfuzz","title":"WFUZZ","category":"Web & applications","dir":"wfuzz","images":{"Normal":"wfuzz/WFUZZ Normal.png","HD":"wfuzz/WFUZZ HD.png","UHD":"wfuzz/WFUZZ UHD.png"},"pdf":"wfuzz/WFUZZ.pdf","keywords":"wfuzz web http api xss sqli injection fuzzing bug bounty"},{"slug":"wpscan","title":"wpscan","category":"Web & applications","dir":"wpscan","images":{"Normal":"wpscan/wpscan Normal.png","HD":"wpscan/wpscan HD.png","UHD":"wpscan/wpscan UHD.png"},"pdf":"wpscan/wpscan.pdf","keywords":"wpscan web http api xss sqli injection fuzzing bug bounty"},{"slug":"xss-testing-tools","title":"XSS Testing Tools","category":"Web & applications","dir":"XSS Tools","images":{"Normal":"XSS Tools/XSS Testing Tools Normal.png","HD":"XSS Tools/XSS Testing Tools HD.png","UHD":"XSS Tools/XSS Testing Tools UHD.png"},"pdf":"XSS Tools/XSS Testing Tools.pdf","keywords":"XSS Tools web http api xss sqli injection fuzzing bug bounty"}]};
+/* CATALOG:END */
+
+(function () {
+  "use strict";
+
+  const REPO = CATALOG.source.repo;
+  const BRANCH = CATALOG.source.branch;
+  const SOURCES = {
+    jsdelivr: p => "https://cdn.jsdelivr.net/gh/" + REPO + "@" + BRANCH + "/" + enc(p),
+    raw: p => "https://raw.githubusercontent.com/" + REPO + "/" + BRANCH + "/" + enc(p),
+    local: p => "./" + enc(p)
+  };
+  const FALLBACK_ORDER = ["jsdelivr", "raw", "local"];
+  const QUALITIES = ["Normal", "HD", "UHD"];
+  const PALETTE = ["#4cc2ff", "#7a5cff", "#ff7ac6", "#ffc857", "#5ddba0", "#ff8a5b",
+                   "#59c1d6", "#b58cff", "#f2698d", "#7fd77f", "#e0a458", "#8fa9c4"];
+
+  function enc(path) {
+    return String(path).split("/").map(encodeURIComponent).join("/");
+  }
+  function fold(text) {
+    return String(text).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+  const $ = sel => document.querySelector(sel);
+
+  /* ---------- persisted state ---------- */
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem("mma:" + key); return v === null ? fallback : JSON.parse(v); }
+      catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem("mma:" + key, JSON.stringify(value)); } catch (e) {}
+    }
+  };
+
+  const state = {
+    query: "",
+    category: "all",          // "all" | "fav" | "recent" | category name
+    sort: store.get("sort", "cat"),
+    density: store.get("density", "grid"),
+    source: store.get("source", "jsdelivr"),
+    quality: store.get("quality", "HD"),
+    favorites: new Set(store.get("favorites", [])),
+    recent: store.get("recent", []),
+    current: null
+  };
+
+  const maps = CATALOG.maps.map((m, i) => Object.assign({}, m, {
+    index: i,
+    haystack: fold([m.title, m.category, m.dir, m.keywords].join(" "))
+  }));
+  const bySlug = new Map(maps.map(m => [m.slug, m]));
+  const catColor = new Map(CATALOG.categories.map((c, i) => [c, PALETTE[i % PALETTE.length]]));
+
+  /* ---------- URL helpers ---------- */
+  function assetUrl(path, source) {
+    const build = SOURCES[source || state.source] || SOURCES.jsdelivr;
+    return build(path);
+  }
+  function bestImage(map, quality) {
+    const wanted = quality || state.quality;
+    const order = [wanted].concat(QUALITIES.slice().reverse());
+    for (const q of order) if (map.images[q]) return { quality: q, path: map.images[q] };
+    const first = Object.keys(map.images)[0];
+    return first ? { quality: first, path: map.images[first] } : null;
+  }
+  function thumbPath(map) {
+    return map.images.Normal || map.images.HD || map.images.UHD;
+  }
+  function githubUrl(map) {
+    const path = map.dir ? map.dir : (thumbPath(map) || "").split("/").slice(0, -1).join("/");
+    return CATALOG.source.url + "/tree/" + BRANCH + "/" + enc(path);
+  }
+
+  /* ---------- image loading with source fallback ---------- */
+  function loadImage(img, path, onFail) {
+    const chain = [state.source].concat(FALLBACK_ORDER.filter(s => s !== state.source));
+    let step = 0;
+    function attempt() {
+      if (step >= chain.length) { if (onFail) onFail(); return; }
+      img.dataset.src = chain[step];
+      img.src = assetUrl(path, chain[step]);
+      step += 1;
+    }
+    img.onerror = attempt;
+    attempt();
+  }
+
+  /* ---------- filtering ---------- */
+  function filtered() {
+    const terms = fold(state.query).split(/\s+/).filter(Boolean);
+    let list = maps;
+
+    if (state.category === "fav") list = list.filter(m => state.favorites.has(m.slug));
+    else if (state.category === "recent") {
+      const rank = new Map(state.recent.map((s, i) => [s, i]));
+      list = list.filter(m => rank.has(m.slug)).sort((a, b) => rank.get(a.slug) - rank.get(b.slug));
+    } else if (state.category !== "all") list = list.filter(m => m.category === state.category);
+
+    if (terms.length) list = list.filter(m => terms.every(t => m.haystack.includes(t)));
+
+    if (state.category !== "recent") {
+      const copy = list.slice();
+      if (state.sort === "az") copy.sort((a, b) => a.title.localeCompare(b.title, "fr"));
+      else if (state.sort === "za") copy.sort((a, b) => b.title.localeCompare(a.title, "fr"));
+      else copy.sort((a, b) => a.category.localeCompare(b.category, "fr") || a.title.localeCompare(b.title, "fr"));
+      list = copy;
+    }
+    return list;
+  }
+
+  /* ---------- rendering ---------- */
+  let visible = [];
+
+  function renderSidebar() {
+    const quick = $("#quickNav");
+    quick.innerHTML = "";
+    const quickItems = [
+      ["all", "Tous les mindmaps", maps.length, "var(--accent)"],
+      ["fav", "Favoris", state.favorites.size, "var(--gold)"],
+      ["recent", "Consultés récemment", state.recent.length, "var(--txt-faint)"]
+    ];
+    for (const [key, label, count, color] of quickItems) {
+      quick.appendChild(catButton(key, label, count, color));
+    }
+
+    const nav = $("#catNav");
+    nav.innerHTML = "";
+    for (const name of CATALOG.categories) {
+      const count = maps.filter(m => m.category === name).length;
+      nav.appendChild(catButton(name, name, count, catColor.get(name)));
+    }
+
+    $("#stats").textContent = maps.length + " mindmaps · " + CATALOG.categories.length + " catégories";
+  }
+
+  function catButton(key, label, count, color) {
+    const b = document.createElement("button");
+    b.className = "cat";
+    b.type = "button";
+    b.dataset.key = key;
+    if (state.category === key) b.setAttribute("aria-current", "true");
+    b.innerHTML = '<span class="dot"></span><span class="name"></span><span class="n"></span>';
+    b.querySelector(".dot").style.setProperty("--c", color);
+    b.querySelector(".name").textContent = label;
+    b.querySelector(".n").textContent = count;
+    b.addEventListener("click", () => {
+      state.category = key;
+      document.body.classList.remove("nav-open");
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    return b;
+  }
+
+  function render() {
+    visible = filtered();
+    const grid = $("#grid");
+    grid.className = "grid" + (state.density === "list" ? " list" : "");
+    grid.innerHTML = "";
+
+    const labels = { all: "Tous les mindmaps", fav: "Favoris", recent: "Consultés récemment" };
+    $("#viewTitle").textContent = labels[state.category] || state.category;
+    $("#viewCount").textContent = visible.length + (visible.length > 1 ? " mindmaps" : " mindmap") +
+      (state.query ? ' pour « ' + state.query + ' »' : "");
+    $("#empty").hidden = visible.length > 0;
+
+    const frag = document.createDocumentFragment();
+    for (const map of visible) frag.appendChild(card(map));
+    grid.appendChild(frag);
+
+    for (const b of document.querySelectorAll(".cat")) {
+      if (b.dataset.key === state.category) b.setAttribute("aria-current", "true");
+      else b.removeAttribute("aria-current");
+    }
+  }
+
+  function card(map) {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.setAttribute("aria-label", map.title);
+
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    const path = thumbPath(map);
+    if (path && state.density !== "list") {
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.alt = "";
+      loadImage(img, path, () => {
+        thumb.innerHTML = '<div class="ph">Aperçu indisponible<br>(vérifiez la source des images)</div>';
+      });
+      thumb.appendChild(img);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const h3 = document.createElement("h3");
+    h3.textContent = map.title;
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.cssText = "width:7px;height:7px;border-radius:50%;background:" + catColor.get(map.category);
+    sub.append(dot, document.createTextNode(map.category));
+
+    const badges = document.createElement("div");
+    badges.className = "badges";
+    for (const q of QUALITIES) {
+      if (!map.images[q]) continue;
+      const b = document.createElement("span");
+      b.className = "badge" + (q === "Normal" ? "" : " hd");
+      b.textContent = q;
+      badges.appendChild(b);
+    }
+    if (map.pdf) {
+      const b = document.createElement("span");
+      b.className = "badge pdf";
+      b.textContent = "PDF";
+      badges.appendChild(b);
+    }
+    meta.append(h3, sub, badges);
+
+    const fav = document.createElement("button");
+    fav.className = "fav";
+    fav.type = "button";
+    fav.textContent = "★";
+    fav.title = "Ajouter aux favoris";
+    fav.setAttribute("aria-pressed", state.favorites.has(map.slug) ? "true" : "false");
+    fav.addEventListener("click", ev => { ev.stopPropagation(); toggleFav(map.slug); });
+
+    el.append(thumb, meta, fav);
+    el.addEventListener("click", () => open(map.slug));
+    el.addEventListener("keydown", ev => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(map.slug); }
+    });
+    return el;
+  }
+
+  function toggleFav(slug) {
+    if (state.favorites.has(slug)) state.favorites.delete(slug);
+    else state.favorites.add(slug);
+    store.set("favorites", Array.from(state.favorites));
+    toast(state.favorites.has(slug) ? "Ajouté aux favoris" : "Retiré des favoris");
+    renderSidebar();
+    render();
+    if (state.current === slug) $("#vFav").setAttribute("aria-pressed", state.favorites.has(slug) ? "true" : "false");
+  }
+
+  /* ---------- viewer ---------- */
+  const stage = $("#stage");
+  const vImg = $("#vImg");
+  const view = { scale: 1, x: 0, y: 0, natural: [0, 0], fitScale: 1 };
+
+  function applyTransform() {
+    vImg.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.scale + ")";
+    $("#vZoom").textContent = Math.round(view.scale * 100) + " %";
+  }
+  function fit(center) {
+    const box = stage.getBoundingClientRect();
+    const [w, h] = view.natural;
+    if (!w || !h) return;
+    view.fitScale = Math.min(box.width / w, box.height / h, 1);
+    view.scale = view.fitScale;
+    view.x = (box.width - w * view.scale) / 2;
+    view.y = (box.height - h * view.scale) / 2;
+    if (center === "top") view.y = Math.max(12, Math.min(view.y, 40));
+    applyTransform();
+  }
+  function zoomAt(factor, cx, cy) {
+    const box = stage.getBoundingClientRect();
+    const px = (cx === undefined ? box.width / 2 : cx - box.left);
+    const py = (cy === undefined ? box.height / 2 : cy - box.top);
+    const next = Math.max(Math.min(view.fitScale * 0.4, 0.5), Math.min(12, view.scale * factor));
+    const k = next / view.scale;
+    view.x = px - (px - view.x) * k;
+    view.y = py - (py - view.y) * k;
+    view.scale = next;
+    applyTransform();
+  }
+  function setScale(scale) {
+    const box = stage.getBoundingClientRect();
+    zoomAt(scale / view.scale, box.left + box.width / 2, box.top + box.height / 2);
+  }
+
+  function renderQualitySeg(map) {
+    const seg = $("#qualitySeg");
+    seg.innerHTML = "";
+    for (const q of QUALITIES) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = q === "Normal" ? "SD" : q;
+      b.title = "Qualité " + q;
+      b.disabled = !map.images[q];
+      b.setAttribute("aria-pressed", String(current.quality === q));
+      b.addEventListener("click", () => { state.quality = q; store.set("quality", q); show(map, q); });
+      seg.appendChild(b);
+    }
+  }
+
+  let current = { quality: state.quality };
+
+  function show(map, quality) {
+    const pick = bestImage(map, quality);
+    if (!pick) return;
+    current = { map: map, quality: pick.quality };
+
+    $("#vTitle").textContent = map.title;
+    vImg.alt = map.title;
+    $("#vSub").textContent = map.category + (map.dir ? " · " + map.dir : "");
+    $("#vFav").setAttribute("aria-pressed", state.favorites.has(map.slug) ? "true" : "false");
+    $("#vRaw").href = assetUrl(pick.path);
+    const pdf = $("#vPdf");
+    if (map.pdf) { pdf.href = assetUrl(map.pdf); pdf.style.display = ""; }
+    else pdf.style.display = "none";
+    renderQualitySeg(map);
+
+    $("#vStatus").hidden = false;
+    $("#vStatus").innerHTML = '<div><div class="spinner"></div>Chargement — ' + pick.quality + '…</div>';
+    $("#vDims").textContent = "";
+    vImg.style.visibility = "hidden";
+
+    vImg.onload = () => {
+      view.natural = [vImg.naturalWidth, vImg.naturalHeight];
+      $("#vDims").textContent = vImg.naturalWidth + " × " + vImg.naturalHeight + " px";
+      vImg.style.width = vImg.naturalWidth + "px";
+      vImg.style.height = vImg.naturalHeight + "px";
+      vImg.style.visibility = "visible";
+      $("#vStatus").hidden = true;
+      fit();
+    };
+    loadImage(vImg, pick.path, () => {
+      $("#vStatus").hidden = false;
+      $("#vStatus").innerHTML = "<div>Image indisponible.<br>Changez la source des images dans la barre latérale.</div>";
+    });
+  }
+
+  function open(slug) {
+    const map = bySlug.get(slug);
+    if (!map) return;
+    state.current = slug;
+    state.recent = [slug].concat(state.recent.filter(s => s !== slug)).slice(0, 24);
+    store.set("recent", state.recent);
+    $("#viewer").hidden = false;
+    document.body.style.overflow = "hidden";
+    show(map, state.quality);
+    history.replaceState(null, "", "#/map/" + slug);
+    renderSidebar();
+  }
+  function close() {
+    $("#viewer").hidden = true;
+    document.body.style.overflow = "";
+    state.current = null;
+    history.replaceState(null, "", location.pathname + location.search);
+    if (state.category === "recent") render();
+  }
+  function step(delta) {
+    if (!current.map) return;
+    const pool = visible.length ? visible : maps;
+    let i = pool.findIndex(m => m.slug === current.map.slug);
+    if (i < 0) i = 0;
+    const next = pool[(i + delta + pool.length) % pool.length];
+    open(next.slug);
+  }
+
+  /* ---------- pan / zoom interactions ---------- */
+  let dragging = false, last = [0, 0], moved = false;
+  stage.addEventListener("pointerdown", ev => {
+    if (ev.target.closest(".nav")) return;
+    dragging = true; moved = false; last = [ev.clientX, ev.clientY];
+    stage.classList.add("drag");
+    stage.setPointerCapture(ev.pointerId);
+  });
+  stage.addEventListener("pointermove", ev => {
+    if (!dragging) return;
+    const dx = ev.clientX - last[0], dy = ev.clientY - last[1];
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    view.x += dx; view.y += dy; last = [ev.clientX, ev.clientY];
+    applyTransform();
+  });
+  const endDrag = () => { dragging = false; stage.classList.remove("drag"); };
+  stage.addEventListener("pointerup", endDrag);
+  stage.addEventListener("pointercancel", endDrag);
+  stage.addEventListener("wheel", ev => {
+    ev.preventDefault();
+    zoomAt(ev.deltaY < 0 ? 1.15 : 1 / 1.15, ev.clientX, ev.clientY);
+  }, { passive: false });
+  stage.addEventListener("dblclick", ev => {
+    const zoomed = view.scale > view.fitScale * 1.05;
+    if (zoomed) fit();
+    else zoomAt(Math.max(1, view.fitScale * 2.5) / view.scale, ev.clientX, ev.clientY);
+  });
+
+  /* ---------- events ---------- */
+  $("#q").addEventListener("input", ev => { state.query = ev.target.value; render(); });
+  $("#sortSel").addEventListener("change", ev => { state.sort = ev.target.value; store.set("sort", state.sort); render(); });
+  $("#densityBtn").addEventListener("click", () => {
+    state.density = state.density === "grid" ? "list" : "grid";
+    store.set("density", state.density);
+    $("#densityBtn").setAttribute("aria-pressed", String(state.density === "list"));
+    render();
+  });
+  $("#themeBtn").addEventListener("click", () => {
+    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next);
+  });
+  $("#sourceSel").addEventListener("change", ev => {
+    state.source = ev.target.value;
+    store.set("source", state.source);
+    toast("Source : " + ev.target.selectedOptions[0].textContent);
+    render();
+    if (current.map) show(current.map, current.quality);
+  });
+  $("#menuBtn").addEventListener("click", () => document.body.classList.toggle("nav-open"));
+  $("#scrim").addEventListener("click", () => document.body.classList.remove("nav-open"));
+  $("#helpBtn").addEventListener("click", () => toast(
+    "Raccourcis : / rechercher · ← → naviguer · + − zoom · 0 ajuster · 1 taille réelle · f favori · Échap fermer", 6000));
+
+  $("#vClose").addEventListener("click", close);
+  $("#vPrev").addEventListener("click", () => step(-1));
+  $("#vNext").addEventListener("click", () => step(1));
+  $("#zoomIn").addEventListener("click", () => zoomAt(1.25));
+  $("#zoomOut").addEventListener("click", () => zoomAt(1 / 1.25));
+  $("#zoomFit").addEventListener("click", () => fit());
+  $("#zoom100").addEventListener("click", () => setScale(1));
+  $("#vFav").addEventListener("click", () => { if (current.map) toggleFav(current.map.slug); });
+
+  window.addEventListener("resize", () => { if (!$("#viewer").hidden) fit(); });
+
+  document.addEventListener("keydown", ev => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (ev.key === "/" && !typing) { ev.preventDefault(); $("#q").focus(); $("#q").select(); return; }
+    if (ev.key === "Escape") {
+      if (!$("#viewer").hidden) close();
+      else if (typing) { $("#q").value = ""; state.query = ""; render(); $("#q").blur(); }
+      return;
+    }
+    if ($("#viewer").hidden || typing) return;
+    if (ev.key === "ArrowRight") { ev.preventDefault(); step(1); }
+    else if (ev.key === "ArrowLeft") { ev.preventDefault(); step(-1); }
+    else if (ev.key === "+" || ev.key === "=") zoomAt(1.25);
+    else if (ev.key === "-") zoomAt(1 / 1.25);
+    else if (ev.key === "0") fit();
+    else if (ev.key === "1") setScale(1);
+    else if (ev.key.toLowerCase() === "f" && current.map) toggleFav(current.map.slug);
+  });
+
+  let toastTimer;
+  function toast(message, ms) {
+    const el = $("#toast");
+    el.textContent = message;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), ms || 2200);
+  }
+
+  /* ---------- boot ---------- */
+  function boot() {
+    const theme = store.get("theme", null);
+    if (theme) document.documentElement.dataset.theme = theme;
+    else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches)
+      document.documentElement.dataset.theme = "light";
+
+    $("#sortSel").value = state.sort;
+    $("#sourceSel").value = state.source;
+    $("#densityBtn").setAttribute("aria-pressed", String(state.density === "list"));
+
+    if (!maps.length) {
+      $("#empty").hidden = false;
+      $("#empty").innerHTML = "<b>Catalogue vide</b>Lancez <code>python3 build_catalog.py --repo /chemin/vers/Mindmap</code> pour le générer.";
+      return;
+    }
+
+    renderSidebar();
+    render();
+
+    const match = /^#\/map\/(.+)$/.exec(location.hash);
+    if (match && bySlug.has(decodeURIComponent(match[1]))) open(decodeURIComponent(match[1]));
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
