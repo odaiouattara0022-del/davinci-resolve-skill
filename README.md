@@ -13,6 +13,20 @@ An [Agent Skill](https://agentskills.io) that teaches AI coding agents (Claude C
 - ✨ **Titles & Fusion** — Text+ titles, transform animations, reusable `.comp` templates
 - 📤 **Rendering** — format/codec setup, render queue management, progress monitoring
 
+## Bonus — PyTerm, a personal Python studio
+
+This repo also ships [`pyterm/`](pyterm/): a self-contained Python IDE + terminal
+that runs in a single web page — phone or desktop, online or offline, no install.
+VS Code-style explorer, tabs, command palette and integrated REPL, with two
+engines: **Pyodide** in the browser (zero setup) or the **real CPython** on your
+machine via `pyterm/server/kernel.py` (full `pip`, sockets, real disk).
+
+```bash
+python3 pyterm/server/kernel.py     # then open http://127.0.0.1:8777
+```
+
+Full guide (in French): [`pyterm/README.md`](pyterm/README.md).
+
 ## Requirements
 
 - DaVinci Resolve 18+ (free or Studio), **running**, with scripting enabled:

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#1b1f27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PyTerm — Python Studio</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icon.svg">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<div id="app" data-sidebar="open" data-panel="open">
+
+  <!-- ============ TITLE BAR ============ -->
+  <header id="titlebar">
+    <button class="icon-btn only-mobile" id="btn-menu" title="Explorateur" aria-label="Explorateur">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 17l4-5-4-5" /><path d="M12 19h8" />
+      </svg>
+      <span class="brand-name">PyTerm</span>
+    </div>
+
+    <div id="file-crumb" class="crumb">
+      <span id="crumb-name">main.py</span>
+      <span id="crumb-dirty" class="dot" hidden></span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="run-group">
+      <button class="btn primary" id="btn-run" title="Exécuter (Ctrl+Entrée)">
+        <svg viewBox="0 0 24 24" class="fill"><path d="M7 4l13 8-13 8z"/></svg>
+        <span class="only-desktop">Exécuter</span>
+      </button>
+      <button class="btn" id="btn-stop" title="Arrêter (Ctrl+C)" disabled>
+        <svg viewBox="0 0 24 24" class="fill"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      </button>
+    </div>
+
+    <button class="icon-btn" id="btn-palette" title="Palette de commandes (Ctrl+Maj+P)" aria-label="Palette de commandes">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-theme" title="Thème clair / sombre" aria-label="Thème">
+      <svg viewBox="0 0 24 24"><path d="M21 13a8.5 8.5 0 1 1-10-10 7 7 0 0 0 10 10z"/></svg>
+    </button>
+    <button class="icon-btn only-desktop" id="btn-panel" title="Terminal (Ctrl+`)" aria-label="Terminal">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10l2 2-2 2M12 14h5"/></svg>
+    </button>
+  </header>
+
+  <!-- ============ BODY ============ -->
+  <div id="body">
+
+    <nav id="activitybar">
+      <button class="act" data-view="files" title="Explorateur" aria-label="Explorateur">
+        <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      </button>
+      <button class="act" data-view="snippets" title="Modèles" aria-label="Modèles">
+        <svg viewBox="0 0 24 24"><path d="M8 4h9l3 3v13H8z"/><path d="M4 8v12h4"/></svg>
+      </button>
+      <button class="act" data-view="packages" title="Paquets" aria-label="Paquets">
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>
+      </button>
+      <div class="spacer"></div>
+      <button class="act" data-view="settings" title="Réglages" aria-label="Réglages">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+      </button>
+    </nav>
+
+    <aside id="sidebar">
+      <!-- Explorateur -->
+      <section class="view" data-view="files">
+        <div class="view-head">
+          <span>Explorateur</span>
+          <span class="view-actions">
+            <button class="icon-btn sm" id="btn-new-file" title="Nouveau fichier">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="icon-btn sm" id="btn-import" title="Importer des fichiers">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+            </button>
+            <button class="icon-btn sm" id="btn-export" title="Télécharger le fichier actif">
+              <svg viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>
+            </button>
+          </span>
+        </div>
+        <ul id="file-list" class="file-list"></ul>
+        <input type="file" id="file-input" multiple accept=".py,.txt,.json,.csv,.md" hidden>
+        <p class="hint">Les fichiers sont enregistrés dans ce navigateur, automatiquement.</p>
+      </section>
+
+      <!-- Modèles -->
+      <section class="view" data-view="snippets" hidden>
+        <div class="view-head"><span>Modèles</span></div>
+        <ul id="snippet-list" class="snippet-list"></ul>
+      </section>
+
+      <!-- Paquets -->
+      <section class="view" data-view="packages" hidden>
+        <div class="view-head"><span>Paquets</span></div>
+        <form id="pkg-form" class="pkg-form">
+          <input type="text" id="pkg-name" placeholder="numpy, requests, rich…" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="btn primary" type="submit">Installer</button>
+        </form>
+        <p class="hint">Équivalent de <code>pip install</code>. En mode navigateur, seuls les
+          paquets compatibles Pyodide (pur Python ou compilés en WebAssembly) sont disponibles.</p>
+        <div class="view-head"><span>Installés</span></div>
+        <ul id="pkg-list" class="pkg-list"></ul>
+        <div class="view-head"><span>Suggestions</span></div>
+        <ul class="pkg-list quick" id="pkg-quick"></ul>
+      </section>
+
+      <!-- Réglages -->
+      <section class="view" data-view="settings" hidden>
+        <div class="view-head"><span>Réglages</span></div>
+        <div class="settings">
+          <label class="field">
+            <span>Moteur Python</span>
+            <select id="set-backend">
+              <option value="pyodide">Navigateur — Pyodide (aucune installation)</option>
+              <option value="native">Local — vrai CPython (kernel.py)</option>
+            </select>
+          </label>
+          <label class="field" id="field-kernel">
+            <span>Adresse du noyau local</span>
+            <input type="text" id="set-kernel-url" placeholder="http://127.0.0.1:8777" autocapitalize="off" spellcheck="false">
+          </label>
+          <label class="field">
+            <span>Taille de police</span>
+            <input type="range" id="set-fontsize" min="11" max="24" step="1">
+          </label>
+          <label class="field">
+            <span>Indentation</span>
+            <select id="set-tabsize">
+              <option value="2">2 espaces</option>
+              <option value="4">4 espaces</option>
+              <option value="8">8 espaces</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="set-wrap"> <span>Retour à la ligne</span></label>
+          <label class="check"><input type="checkbox" id="set-autorun"> <span>Enregistrer avant chaque exécution</span></label>
+          <label class="check"><input type="checkbox" id="set-keybar"> <span>Barre de symboles (mobile)</span></label>
+          <div class="field">
+            <span>Données</span>
+            <div class="row">
+              <button class="btn" id="btn-export-all">Exporter tout (.json)</button>
+              <button class="btn danger" id="btn-reset">Réinitialiser</button>
+            </div>
+          </div>
+          <p class="hint" id="env-info"></p>
+        </div>
+      </section>
+    </aside>
+
+    <div id="split-v" class="splitter vertical" role="separator" aria-orientation="vertical"></div>
+
+    <main id="main">
+      <div id="tabs" class="tabs" role="tablist"></div>
+      <div id="editor-host"></div>
+
+      <div id="split-h" class="splitter horizontal" role="separator" aria-orientation="horizontal"></div>
+
+      <section id="panel">
+        <div class="panel-head">
+          <div class="panel-tabs">
+            <button class="ptab is-active" data-tab="terminal">Terminal</button>
+            <button class="ptab" data-tab="problems">Problèmes <span id="problem-count" class="badge" hidden>0</span></button>
+          </div>
+          <div class="spacer"></div>
+          <span id="runtime-badge" class="badge muted">démarrage…</span>
+          <button class="icon-btn sm" id="btn-clear" title="Effacer la console">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+          </button>
+          <button class="icon-btn sm only-mobile" id="btn-panel-close" title="Fermer">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="panel-body" data-tab="terminal">
+          <div id="term-out" class="term-out" tabindex="0"></div>
+          <form id="term-form" class="term-form">
+            <span class="prompt" id="term-prompt">&gt;&gt;&gt;</span>
+            <input type="text" id="term-in" autocomplete="off" autocapitalize="off" autocorrect="off"
+                   spellcheck="false" placeholder="expression Python, ou !pip install rich">
+          </form>
+        </div>
+
+        <div class="panel-body" data-tab="problems" hidden>
+          <ul id="problem-list" class="problem-list"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============ MOBILE KEY BAR ============ -->
+  <div id="keybar" class="keybar" hidden>
+    <button data-ins="  " class="wide">⇥</button>
+    <button data-ins=":">:</button>
+    <button data-ins="(">(</button>
+    <button data-ins=")">)</button>
+    <button data-ins="[">[</button>
+    <button data-ins="]">]</button>
+    <button data-ins="{">{</button>
+    <button data-ins="}">}</button>
+    <button data-ins="=">=</button>
+    <button data-ins="&quot;">"</button>
+    <button data-ins="'">'</button>
+    <button data-ins="_">_</button>
+    <button data-ins="#">#</button>
+    <button data-ins=".">.</button>
+    <button data-ins=",">,</button>
+    <button data-ins="%">%</button>
+    <button data-ins="+">+</button>
+    <button data-ins="-">-</button>
+    <button data-ins="*">*</button>
+    <button data-ins="/">/</button>
+    <button data-ins="&lt;">&lt;</button>
+    <button data-ins="&gt;">&gt;</button>
+  </div>
+
+  <!-- ============ STATUS BAR ============ -->
+  <footer id="statusbar">
+    <span id="st-backend" class="st">Pyodide</span>
+    <span id="st-pos" class="st">L1 : C1</span>
+    <span id="st-files" class="st"></span>
+    <div class="spacer"></div>
+    <span id="st-msg" class="st"></span>
+    <span id="st-time" class="st"></span>
+  </footer>
+</div>
+
+<!-- ============ COMMAND PALETTE ============ -->
+<div id="palette" class="overlay" hidden>
+  <div class="palette-box" role="dialog" aria-label="Palette de commandes">
+    <input type="text" id="palette-input" placeholder="Tapez une commande ou un nom de fichier…"
+           autocomplete="off" autocapitalize="off" spellcheck="false">
+    <ul id="palette-list"></ul>
+  </div>
+</div>
+
+<!-- ============ PROMPT DIALOG (input()) ============ -->
+<div id="stdin-modal" class="overlay" hidden>
+  <form class="palette-box compact" id="stdin-form">
+    <p id="stdin-label" class="stdin-label">Entrée attendue par le programme</p>
+    <textarea id="stdin-input" rows="1" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+    <div class="row end"><button class="btn primary" type="submit">Envoyer</button></div>
+  </form>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/anyword-hint.min.js"></script>
+
+<script src="js/fs.js"></script>
+<script src="js/snippets.js"></script>
+<script src="js/runtime.js"></script>
+<script src="js/terminal.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

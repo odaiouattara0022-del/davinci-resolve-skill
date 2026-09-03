@@ -1,0 +1,16 @@
+{
+  "name": "PyTerm — Python Studio",
+  "short_name": "PyTerm",
+  "description": "Editeur et terminal Python autonomes, dans le navigateur, hors-ligne, sur telephone comme sur ordinateur.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16191f",
+  "theme_color": "#1b1f27",
+  "categories": ["developer", "education", "productivity"],
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
