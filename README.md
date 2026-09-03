@@ -16,14 +16,17 @@ An [Agent Skill](https://agentskills.io) that teaches AI coding agents (Claude C
 ## Bonus — PyTerm, a personal Python studio
 
 This repo also ships [`pyterm/`](pyterm/): a self-contained Python IDE + terminal
-that runs in a single web page — phone or desktop, online or offline, no install.
-VS Code-style explorer, tabs, command palette and integrated REPL, with two
-engines: **Pyodide** in the browser (zero setup) or the **real CPython** on your
-machine via `pyterm/server/kernel.py` (full `pip`, sockets, real disk).
+that **installs as a real app** — home-screen icon, launch screen, full screen,
+offline. VS Code-style explorer, tabs, command palette and integrated REPL, with
+two engines: **Pyodide** in the browser (zero setup, the one iOS allows) or the
+**real CPython** on your machine via `pyterm/server/kernel.py` (full `pip`,
+sockets, real disk).
 
-```bash
-python3 pyterm/server/kernel.py     # then open http://127.0.0.1:8777
-```
+- **iPhone / Android** — publish `pyterm/` over HTTPS (the bundled
+  [Pages workflow](.github/workflows/pages.yml) does it on every push to `main`),
+  open it in Safari or Chrome, then *Add to Home Screen* / *Install app*.
+- **Desktop** — `python3 pyterm/server/kernel.py`, then open
+  `http://127.0.0.1:8777` and install it from the address bar.
 
 Full guide (in French): [`pyterm/README.md`](pyterm/README.md).
 

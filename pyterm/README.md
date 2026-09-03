@@ -1,26 +1,64 @@
 # PyTerm — studio Python personnel
 
-Un éditeur **et** un terminal Python complets, dans une page web autonome.
-Le même dossier fonctionne sur un téléphone Android/iOS, sur un ordinateur,
-en ligne comme hors connexion. L'ergonomie reprend celle de VS Code et de
-PyCharm : explorateur, onglets, palette de commandes, console intégrée.
+Un éditeur **et** un terminal Python complets, installables comme une vraie
+application. Sur iPhone, PyTerm obtient son icône sur l'écran d'accueil, son
+écran de lancement, le plein écran sans barre Safari, et fonctionne sans
+connexion. Le même dossier sert aussi d'app sur Android, Windows, macOS et
+Linux. L'ergonomie reprend celle de VS Code et de PyCharm : explorateur,
+onglets, palette de commandes, console intégrée.
 
-![sans installation](https://img.shields.io/badge/installation-aucune-brightgreen)
+![installable](https://img.shields.io/badge/iPhone-installable-brightgreen)
 ![hors-ligne](https://img.shields.io/badge/hors--ligne-oui-blue)
+![sans dépendance](https://img.shields.io/badge/d%C3%A9pendances-aucune-lightgrey)
 
 ---
 
-## 1. Démarrer en 30 secondes
+## 1. Installer l'application sur iPhone
 
-### Sur téléphone (ou n'importe quel navigateur)
+iOS n'installe une application depuis le web que si la page est servie en
+**HTTPS**. Le dépôt contient le nécessaire pour l'obtenir en trois minutes.
 
-1. Publiez le dossier `pyterm/` sur n'importe quel hébergement statique
-   (GitHub Pages, Netlify, Cloudflare Pages…) — voir §6.
-2. Ouvrez l'adresse, puis **« Ajouter à l'écran d'accueil »**.
-   L'application s'installe comme une vraie app, plein écran, et fonctionne
-   ensuite sans connexion.
+### a. Publier l'application (une seule fois)
 
-### Sur ordinateur, avec le vrai Python de la machine
+Le workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml)
+publie automatiquement le dossier `pyterm/` sur GitHub Pages à chaque envoi
+sur `main`.
+
+1. Sur GitHub : **Settings → Pages → Source : GitHub Actions**.
+2. Fusionnez cette branche dans `main` (ou lancez le workflow à la main
+   depuis l'onglet *Actions*).
+3. L'adresse s'affiche à la fin du workflow, de la forme
+   `https://<votre-compte>.github.io/davinci-resolve-skill/`.
+
+### b. Poser l'icône sur l'écran d'accueil
+
+1. Ouvrez cette adresse **dans Safari** (Chrome iOS ne sait pas installer).
+2. Touchez **Partager** ⬆︎, puis **Sur l'écran d'accueil**, puis **Ajouter**.
+
+PyTerm propose lui-même ces étapes au premier lancement. L'application
+apparaît alors avec son icône ; lancée depuis l'écran d'accueil, elle occupe
+tout l'écran, affiche son écran de lancement, garde ses propres fichiers et
+démarre sans réseau.
+
+> **À savoir sur iPhone.** Le code s'exécute avec le moteur du navigateur
+> (Pyodide) : c'est un vrai CPython compilé en WebAssembly, avec presque
+> toute la bibliothèque standard. Il ne peut pas ouvrir de sockets ni lancer
+> de processus — ce sont les règles d'iOS, pas celles de PyTerm. Le moteur
+> « CPython local » est désactivé sur iPhone et l'application vous le dit.
+> Prévoyez le premier lancement en Wi-Fi : Pyodide pèse environ 10 Mo, puis
+> il est conservé hors ligne.
+
+---
+
+## 2. Les autres appareils
+
+### Android
+
+Même chose que sur iPhone, dans Chrome : menu ⋮ → **Installer l'application**.
+Avec [Termux](https://termux.dev) (`pkg install python git`), vous pouvez en
+plus lancer le vrai CPython sur le téléphone — voir §8.
+
+### Ordinateur, avec le vrai Python de la machine
 
 ```bash
 python3 pyterm/server/kernel.py
@@ -29,17 +67,19 @@ python3 pyterm/server/kernel.py
 
 C'est la configuration la plus complète : l'interface est servie avec les
 en-têtes d'isolation qui débloquent `input()` en direct et l'interruption
-Ctrl+C, et le moteur *CPython local* devient disponible.
+Ctrl+C, et le moteur *CPython local* devient disponible. Chrome et Edge
+proposent alors **Installer PyTerm** dans la barre d'adresse : vous obtenez
+une fenêtre d'application, sans barre de navigateur.
 
 ### Sans rien lancer du tout
 
-Ouvrez simplement `pyterm/index.html` dans un navigateur. Tout fonctionne,
-à deux détails près : `input()` demande ses réponses avant l'exécution, et
-l'arrêt d'un programme redémarre le moteur au lieu de l'interrompre.
+Ouvrez `pyterm/index.html` dans un navigateur. Tout fonctionne, à deux détails
+près : `input()` demande ses réponses avant l'exécution, et l'arrêt d'un
+programme redémarre le moteur au lieu de l'interrompre.
 
 ---
 
-## 2. Deux moteurs, un seul environnement
+## 3. Deux moteurs, un seul environnement
 
 | | **Navigateur — Pyodide** | **Local — CPython** |
 |---|---|---|
@@ -60,7 +100,7 @@ les `import` entre vos fichiers, `open()`, `pathlib` fonctionnent normalement.
 
 ---
 
-## 3. Raccourcis
+## 4. Raccourcis
 
 | Raccourci | Action |
 |---|---|
@@ -83,7 +123,7 @@ au-dessus du clavier ; elle se désactive dans les réglages.
 
 ---
 
-## 4. Commandes de la console
+## 5. Commandes de la console
 
 La console du bas est un vrai REPL : toute expression y est évaluée et son
 résultat affiché. Elle accepte en plus quelques commandes préfixées :
@@ -108,7 +148,7 @@ inspectables — c'est le mode « Run with Python Console » de PyCharm.
 
 ---
 
-## 5. Vos fichiers
+## 6. Vos fichiers
 
 - Ils vivent dans le stockage local du navigateur et survivent à la
   fermeture de l'onglet.
@@ -124,7 +164,7 @@ inspectables — c'est le mode « Run with Python Console » de PyCharm.
 
 ---
 
-## 6. Héberger l'interface
+## 7. Héberger l'interface
 
 Le dossier est entièrement statique — aucune construction, aucun `npm`.
 
@@ -138,7 +178,7 @@ la saisie clavier en direct et l'interruption propre.
 
 ---
 
-## 7. Le noyau local en détail
+## 8. Le noyau local en détail
 
 ```bash
 python3 server/kernel.py [options]
@@ -172,33 +212,43 @@ puis, sur le téléphone, ouvrez `http://<ip-de-l-ordinateur>:8777/?token=monsec
 
 ---
 
-## 8. Structure
+## 9. Structure
 
 ```
 pyterm/
 ├── index.html              interface
-├── manifest.webmanifest    installation en application
+├── manifest.webmanifest    métadonnées d'installation
 ├── sw.js                   service worker (hors-ligne)
 ├── assets/
 │   ├── app.css             thème sombre et clair
-│   └── icon.svg
+│   ├── icon-*.png          icônes d'application (dont l'icône iOS 180×180)
+│   ├── icon.svg            source vectorielle
+│   └── splash/             écrans de lancement iPhone
 ├── js/
+│   ├── platform.js         iPhone : hauteur, clavier, installation
 │   ├── fs.js               fichiers virtuels + réglages
 │   ├── snippets.js         modèles de départ
 │   ├── runtime.js          les deux moteurs Python
 │   ├── terminal.js         console et historique
 │   ├── editor.js           enveloppe CodeMirror
 │   └── main.js             assemblage
-└── server/
-    └── kernel.py           noyau CPython + serveur (stdlib seule)
+├── server/
+│   └── kernel.py           noyau CPython + serveur (stdlib seule)
+└── tools/
+    └── make_icons.py       régénère icônes et écrans de lancement
 ```
+
+Les icônes et les écrans de lancement sont dessinés par
+`tools/make_icons.py`, sans aucune dépendance : Safari refuse les icônes SVG
+pour l'écran d'accueil, et les images de lancement doivent correspondre au
+pixel près aux dimensions de chaque iPhone.
 
 CodeMirror est chargé depuis un CDN à la première visite puis mis en cache
 par le service worker ; Pyodide de même, à la première exécution.
 
 ---
 
-## 9. Limites connues
+## 10. Limites connues
 
 - En mode navigateur, un paquet doit être compatible Pyodide : le pur Python
   passe toujours, le code C exige une version compilée en WebAssembly
@@ -208,11 +258,16 @@ par le service worker ; Pyodide de même, à la première exécution.
   limites du bac à sable du navigateur, pas de PyTerm.
 - `input()` en direct et l'interruption Ctrl+C exigent l'isolation du site,
   c'est-à-dire d'ouvrir l'interface via `server/kernel.py` (ou tout
-  hébergement envoyant les en-têtes COOP/COEP).
+  hébergement envoyant les en-têtes COOP/COEP). GitHub Pages ne les envoie
+  pas : sur iPhone, PyTerm demande donc les entrées avant l'exécution, et le
+  bouton d'arrêt redémarre le moteur.
+- Une application native pour l'App Store exigerait un Mac, Xcode et un
+  compte développeur Apple payant. L'installation depuis Safari donne le même
+  résultat visible — icône, plein écran, hors-ligne — sans rien de tout cela.
 - La première visite télécharge Pyodide (~10 Mo) : prévoyez-la sur Wi-Fi.
 
 ---
 
-## 10. Licence
+## 11. Licence
 
 MIT, comme le reste du dépôt.

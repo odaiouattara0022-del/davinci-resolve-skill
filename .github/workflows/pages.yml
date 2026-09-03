@@ -1,0 +1,62 @@
+# Publie l'application PyTerm sur GitHub Pages.
+# Une adresse HTTPS est indispensable : iOS n'installe une application sur
+# l'ecran d'accueil que depuis une origine securisee.
+name: Deploy PyTerm to Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['pyterm/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verifier les fichiers de l'application
+        run: |
+          python3 -m py_compile pyterm/server/kernel.py pyterm/tools/make_icons.py
+          test -f pyterm/index.html
+          test -f pyterm/manifest.webmanifest
+          test -f pyterm/assets/icon-180.png
+          python3 - <<'PY'
+          import json, pathlib
+          m = json.loads(pathlib.Path('pyterm/manifest.webmanifest').read_text())
+          for icon in m['icons']:
+              assert (pathlib.Path('pyterm') / icon['src']).is_file(), icon['src']
+          html = pathlib.Path('pyterm/index.html').read_text()
+          for ref in ('assets/icon-180.png', 'js/platform.js', 'manifest.webmanifest'):
+              assert ref in html, ref
+          print('manifeste et references verifies')
+          PY
+
+      - uses: actions/configure-pages@v5
+
+      - name: Preparer le site
+        run: |
+          mkdir -p _site
+          cp -r pyterm/* _site/
+          rm -rf _site/server _site/tools
+          # Une redirection depuis la racine, pour une adresse courte.
+          printf '<!doctype html><meta http-equiv="refresh" content="0; url=./index.html">' > _site/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,10 +1,12 @@
 /* PyTerm service worker — coque applicative hors-ligne. */
-const VERSION = 'pyterm-v1';
+const VERSION = 'pyterm-v2';
 const SHELL = [
   './', './index.html', './assets/app.css', './assets/icon.svg',
-  './js/fs.js', './js/snippets.js', './js/runtime.js',
+  './js/platform.js', './js/fs.js', './js/snippets.js', './js/runtime.js',
   './js/terminal.js', './js/editor.js', './js/main.js',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './assets/icon-180.png', './assets/icon-192.png', './assets/icon-512.png',
+  './assets/icon-512-maskable.png', './assets/favicon-32.png'
 ];
 
 self.addEventListener('install', (e) => {

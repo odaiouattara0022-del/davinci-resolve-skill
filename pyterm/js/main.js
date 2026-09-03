@@ -623,6 +623,8 @@
       { name: 'Moteur : CPython local', key: '', run: function () { switchBackend('native'); } },
       { name: 'Installer un paquet…', key: '', run: function () {
           var n = global.prompt('Nom du paquet'); if (n) installPackage(n.trim()); } },
+      { name: 'Installer l\'application', key: '', run: function () {
+          if (global.PyPlatform) global.PyPlatform.showInstall(); } },
       { name: 'Reglages', key: '', run: function () { showView('settings'); } }
     ];
     FS.list().forEach(function (p) {
@@ -1033,6 +1035,8 @@
         navigator.serviceWorker.register('sw.js').catch(function () { /* hors-ligne indisponible */ });
       }
     }
+
+    if (global.PyPlatform) global.PyPlatform.init();
 
     FS.onChange(function (evt) {
       if (evt.type === 'error') toast('stockage plein : exportez puis allegez vos fichiers', 4000);
