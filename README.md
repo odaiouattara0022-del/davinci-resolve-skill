@@ -121,9 +121,12 @@ Si tout va bien, le script affiche `CONNECTED`, le nom du projet et de la timeli
 
 ### Autre projet de ce dépôt
 
-`MonBudget/` — application iPhone (SwiftUI + SwiftData) de suivi et de planification
-des dépenses mensuelles : dépenses classées par catégorie, échéances récurrentes,
-rappels avant chaque paiement, budget et statistiques. Voir [MonBudget/README.md](MonBudget/README.md).
+`MonBudget/` — suivi et planification des dépenses du mois : dépenses classées par
+catégorie, échéances récurrentes, rappels avant chaque paiement, budget et
+statistiques. En deux versions — une application web à installer sur l'écran
+d'accueil de l'iPhone (`MonBudget/web/`, en service) et une application iPhone
+native en SwiftUI en attente d'un Mac pour être compilée.
+Voir [MonBudget/README.md](MonBudget/README.md).
 
 ### Licence
 

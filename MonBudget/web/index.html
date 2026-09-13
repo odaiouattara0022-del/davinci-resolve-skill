@@ -1,0 +1,1374 @@
+<title>MonBudget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --fond: #F1F3F1;
+    --surface: #FFFFFF;
+    --surface-2: #E7EBE8;
+    --encre: #14201C;
+    --encre-2: #5C6B65;
+    --encre-3: #8A968F;
+    --ligne: #DBE1DC;
+    --accent: #0E6E5B;
+    --accent-doux: #DCECE6;
+    --positif: #2F7D62;
+    --attention: #B9761A;
+    --attention-doux: #F6E7D2;
+    --critique: #B23A2F;
+    --critique-doux: #F6DFDB;
+    --ombre: 0 1px 2px rgba(20,32,28,.05), 0 10px 28px -18px rgba(20,32,28,.35);
+    --rayon: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fond: #0E1512;
+      --surface: #171F1B;
+      --surface-2: #202A25;
+      --encre: #E7EDE9;
+      --encre-2: #9FAFA7;
+      --encre-3: #78877F;
+      --ligne: #28332D;
+      --accent: #46BF9F;
+      --accent-doux: #16322B;
+      --positif: #58C39D;
+      --attention: #D9962F;
+      --attention-doux: #33270F;
+      --critique: #E0715F;
+      --critique-doux: #33201C;
+      --ombre: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fond: #0E1512;
+    --surface: #171F1B;
+    --surface-2: #202A25;
+    --encre: #E7EDE9;
+    --encre-2: #9FAFA7;
+    --encre-3: #78877F;
+    --ligne: #28332D;
+    --accent: #46BF9F;
+    --accent-doux: #16322B;
+    --positif: #58C39D;
+    --attention: #D9962F;
+    --attention-doux: #33270F;
+    --critique: #E0715F;
+    --critique-doux: #33201C;
+    --ombre: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--fond);
+    color: var(--encre);
+    font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1, h2, h3, .chiffre {
+    font-family: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    text-wrap: balance;
+    margin: 0;
+  }
+  .chiffre { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+  .app {
+    max-width: 520px;
+    margin-inline: auto;
+    padding-inline: 16px;
+    padding-block: 14px 108px;
+  }
+
+  /* ---------- En-tête ---------- */
+  .entete { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 14px; }
+  .entete h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+  .entete .sous { color: var(--encre-2); font-size: 13px; }
+  .navmois { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: var(--surface); border: 1px solid var(--ligne); border-radius: 11px; padding: 3px; }
+  .navmois button {
+    width: 34px; height: 30px; border-radius: 8px; border: 0;
+    background: var(--surface-2); color: var(--encre-2); display: grid; place-items: center; font-size: 15px;
+  }
+  .navmois .libelle { flex: 1; text-align: center; font-weight: 600; font-size: 14px; text-transform: capitalize; }
+
+  /* ---------- Blocs ---------- */
+  .bloc {
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: var(--rayon);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .bloc > h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--encre-2); font-weight: 600; margin-bottom: 10px;
+  }
+  .bloc-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .bloc-tete h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--encre-2); font-weight: 600; }
+  .lien { background: none; border: 0; color: var(--accent); font-size: 13px; font-weight: 600; padding: 0; }
+
+  /* ---------- Résumé du mois ---------- */
+  .resume { background: var(--surface); border: 1px solid var(--ligne); border-radius: 18px; padding: 16px; margin-bottom: 12px; box-shadow: var(--ombre); }
+  .resume .etiq { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--encre-2); font-weight: 600; }
+  .resume .gros { font-size: clamp(26px, 8.5vw, 34px); overflow-wrap: anywhere; font-weight: 700; letter-spacing: -0.03em; margin-top: 2px; }
+  .resume .ligne-sec { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--encre-2); }
+  .resume .ligne-sec b { color: var(--encre); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .jauge { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin-top: 12px; }
+  .jauge span { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .3s ease; }
+  .jauge.chaud span { background: var(--attention); }
+  .jauge.rouge span { background: var(--critique); }
+  .mini { font-size: 12.5px; color: var(--encre-2); }
+
+  .duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .tuile { background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: 12px; }
+  .tuile .etiq { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--encre-2); font-weight: 600; }
+  .tuile .val { font-size: 18px; overflow-wrap: anywhere; font-weight: 600; margin-top: 4px; letter-spacing: -0.02em; }
+  .tuile .det { font-size: 12px; color: var(--encre-3); margin-top: 2px; }
+
+  /* ---------- Lignes ---------- */
+  .liste { display: flex; flex-direction: column; }
+  .ligne { display: flex; align-items: center; gap: 11px; padding: 9px 0; border-top: 1px solid var(--ligne); text-align: left; background: none; border-left: 0; border-right: 0; border-bottom: 0; width: 100%; }
+  .liste .ligne:first-child { border-top: 0; }
+  .pastille { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; flex: 0 0 auto; }
+  .ligne .corps { flex: 1 1 auto; min-width: 0; }
+  .ligne .titre { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ligne .detail { font-size: 12.5px; color: var(--encre-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ligne .montant { font-weight: 600; font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ligne .fin { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: 0 0 auto; }
+
+  .jour-tete { display: flex; justify-content: space-between; align-items: baseline; margin: 14px 0 2px; font-size: 12px; color: var(--encre-2); }
+  .jour-tete b { font-weight: 600; text-transform: capitalize; }
+  .jour-tete span { font-variant-numeric: tabular-nums; }
+
+  .puce { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .puce.paye { background: var(--accent-doux); color: var(--positif); }
+  .puce.retard { background: var(--critique-doux); color: var(--critique); }
+  .puce.aujourdhui { background: var(--attention-doux); color: var(--attention); }
+  .puce.avenir { background: var(--surface-2); color: var(--encre-2); }
+  .puce.ignore { background: var(--surface-2); color: var(--encre-3); }
+
+  .actions-ligne { display: flex; gap: 6px; flex: 0 0 auto; }
+  .bpetit { border: 1px solid var(--ligne); background: var(--surface); border-radius: 9px; padding: 5px 9px; font-size: 12.5px; font-weight: 600; color: var(--encre-2); }
+  .bpetit.vert { color: var(--positif); border-color: color-mix(in srgb, var(--positif) 35%, var(--ligne)); }
+
+  /* ---------- Graphiques ---------- */
+  .barres { display: flex; align-items: flex-end; gap: 7px; height: 132px; padding-top: 18px; }
+  .barres .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 5px; }
+  .barres .tige { width: 100%; border-radius: 6px 6px 3px 3px; background: var(--accent-doux); min-height: 3px; }
+  .barres .col.actif .tige { background: var(--accent); }
+  .barres .val { font-size: 10.5px; color: var(--encre-2); font-variant-numeric: tabular-nums; }
+  .barres-pied { display: flex; gap: 7px; margin-top: 6px; }
+  .barres-pied span { flex: 1; text-align: center; font-size: 11px; color: var(--encre-2); }
+
+  .cat-ligne { padding: 9px 0; border-top: 1px solid var(--ligne); }
+  .cat-ligne:first-child { border-top: 0; }
+  .cat-haut { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+  .cat-haut b { font-weight: 500; }
+  .cat-haut span { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .cat-jauge { height: 6px; border-radius: 99px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .cat-jauge span { display: block; height: 100%; border-radius: 99px; }
+  .cat-bas { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--encre-3); margin-top: 4px; }
+
+  /* ---------- Formulaires ---------- */
+  .champ { display: block; margin-bottom: 12px; }
+  .champ > span { display: block; font-size: 12px; font-weight: 600; color: var(--encre-2); margin-bottom: 5px; }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    width: 100%; background: var(--surface); border: 1px solid var(--ligne);
+    border-radius: 10px; padding: 10px 11px; -webkit-appearance: none; appearance: none;
+  }
+  select { background-image: linear-gradient(45deg, transparent 50%, var(--encre-2) 50%), linear-gradient(135deg, var(--encre-2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+  textarea { min-height: 64px; resize: vertical; }
+  .rangee { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bascule { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--ligne); }
+  .bascule:first-of-type { border-top: 0; }
+  .bascule span { font-size: 14px; }
+  input[type="checkbox"] { width: 46px; height: 27px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--ligne); position: relative; flex: 0 0 auto; transition: background .15s; }
+  input[type="checkbox"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 21px; height: 21px; border-radius: 99px; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+  input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  input[type="checkbox"]:checked::after { transform: translateX(19px); }
+
+  .bouton { width: 100%; border: 0; border-radius: 12px; padding: 13px; font-weight: 600; background: var(--accent); color: #fff; }
+  .bouton.fant { background: var(--surface); color: var(--encre); border: 1px solid var(--ligne); }
+  .bouton.danger { background: var(--surface); color: var(--critique); border: 1px solid color-mix(in srgb, var(--critique) 35%, var(--ligne)); }
+  .bouton + .bouton { margin-top: 8px; }
+
+  /* ---------- Feuille modale ---------- */
+  dialog {
+    border: 0; padding: 0; background: transparent; width: 100%; max-width: 520px;
+    margin: auto auto 0; max-height: 92dvh;
+  }
+  dialog::backdrop { background: rgba(10,18,15,.45); backdrop-filter: blur(2px); }
+  .feuille {
+    background: var(--fond); color: var(--encre);
+    border-radius: 20px 20px 0 0; border: 1px solid var(--ligne); border-bottom: 0;
+    padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
+    max-height: 92dvh; overflow-y: auto;
+  }
+  .poignee { width: 38px; height: 4px; border-radius: 99px; background: var(--ligne); margin: 6px auto 12px; }
+  .feuille-tete { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .feuille-tete h2 { font-size: 18px; font-weight: 600; }
+  .feuille-tete button { background: none; border: 0; color: var(--accent); font-weight: 600; }
+
+  /* ---------- Onglets ---------- */
+  .onglets {
+    position: fixed; inset: auto 0 0 0; z-index: 5;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--ligne);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .onglets button {
+    background: none; border: 0; padding: 8px 2px 9px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--encre-3); font-size: 10.5px; font-weight: 600;
+  }
+  .onglets button svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .onglets button[aria-current="true"] { color: var(--accent); }
+
+  .ajout {
+    position: fixed; right: max(16px, calc(50vw - 244px)); bottom: calc(76px + env(safe-area-inset-bottom));
+    z-index: 6; width: 54px; height: 54px; border-radius: 18px; border: 0;
+    background: var(--accent); color: #fff; font-size: 27px; line-height: 1;
+    box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+
+  .vide { text-align: center; color: var(--encre-2); font-size: 13.5px; padding: 18px 8px; }
+  .vide b { display: block; color: var(--encre); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+  .note { font-size: 12px; color: var(--encre-3); margin-top: 8px; }
+  .etat-sync { font-size: 11.5px; color: var(--encre-3); text-align: center; margin-top: 14px; }
+  .grille-emoji { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+  .grille-emoji button { border: 1px solid var(--ligne); background: var(--surface); border-radius: 10px; padding: 7px 0; font-size: 18px; }
+  .grille-emoji button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-doux); }
+  .grille-couleur { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .grille-couleur button { height: 34px; border-radius: 10px; border: 2px solid transparent; }
+  .grille-couleur button[aria-pressed="true"] { border-color: var(--encre); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app">
+  <header class="entete">
+    <div>
+      <h1 id="titre-vue">Accueil</h1>
+      <div class="sous" id="sous-titre">—</div>
+    </div>
+    <div class="navmois" id="navmois" hidden>
+      <button type="button" data-mois="-1" aria-label="Mois précédent">‹</button>
+      <div class="libelle" id="libelle-mois"></div>
+      <button type="button" data-mois="1" aria-label="Mois suivant">›</button>
+    </div>
+  </header>
+  <main id="vue"></main>
+</div>
+
+<button class="ajout" id="bouton-ajout" type="button" aria-label="Ajouter une dépense">+</button>
+
+<nav class="onglets" id="onglets" aria-label="Navigation principale"></nav>
+
+<dialog id="feuille"><div class="feuille" id="feuille-contenu"></div></dialog>
+
+<script>
+"use strict";
+
+/* ======================= Données ======================= */
+
+const CLE_LOCALE = "monbudget.v1";
+
+const CATEGORIES_DEFAUT = [
+  { nom: "Logement",   emoji: "🏠", couleur: "#0E6E5B" },
+  { nom: "Alimentation", emoji: "🛒", couleur: "#4C8B3B" },
+  { nom: "Transport",  emoji: "🚌", couleur: "#B9761A" },
+  { nom: "Factures",   emoji: "🧾", couleur: "#5B5FB3" },
+  { nom: "Santé",      emoji: "💊", couleur: "#B23A2F" },
+  { nom: "Éducation",  emoji: "🎓", couleur: "#2B7A9B" },
+  { nom: "Famille",    emoji: "👨‍👩‍👧", couleur: "#A8562E" },
+  { nom: "Loisirs",    emoji: "🎬", couleur: "#8E4B7E" },
+  { nom: "Épargne",    emoji: "🐖", couleur: "#2F7D62" },
+  { nom: "Divers",     emoji: "💸", couleur: "#6C7A73" },
+];
+
+const MOYENS = [
+  ["carte", "Carte"], ["especes", "Espèces"], ["mobile", "Mobile Money"],
+  ["virement", "Virement"], ["prelevement", "Prélèvement"], ["cheque", "Chèque"], ["autre", "Autre"],
+];
+
+const FREQUENCES = [
+  ["unique", "Une seule fois"], ["quotidien", "Tous les jours"], ["hebdomadaire", "Toutes les semaines"],
+  ["mensuel", "Tous les mois"], ["trimestriel", "Tous les trimestres"], ["annuel", "Tous les ans"],
+];
+
+const DEVISES = ["XOF", "EUR", "USD", "XAF", "MAD", "CAD", "GBP", "CHF", "NGN", "GHS", "TND", "DZD"];
+
+const PALETTE = ["#0E6E5B", "#4C8B3B", "#B9761A", "#5B5FB3", "#B23A2F", "#2B7A9B", "#A8562E", "#8E4B7E", "#2F7D62", "#6C7A73"];
+const EMOJIS = ["🏠","🛒","🚌","🧾","💊","🎓","👨‍👩‍👧","🎬","🐖","💸","☕️","👕","⛽️","📱","🎁","✈️","🏥","🔧","🐾","💼","💇","🍽","📚","🎧"];
+
+let ETAT = etatVierge();
+let UI = { onglet: "accueil", mois: debutDuMois(new Date()), recherche: "" };
+let baseDistante = null;   // capacité db, si disponible
+let capTelechargement = null;
+let etatSync = "local";
+
+function etatVierge() {
+  return {
+    majAt: horodatage(),
+    reglages: { devise: "XOF", budget: 0, seuil: 0.8, majAt: horodatage() },
+    categories: CATEGORIES_DEFAUT.map((c, i) => ({
+      id: identifiant(), nom: c.nom, emoji: c.emoji, couleur: c.couleur,
+      plafond: 0, ordre: i, majAt: horodatage(),
+    })),
+    depenses: [],
+    prevues: [],
+    sauts: [],
+  };
+}
+
+function identifiant() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); }
+function horodatage() { return new Date().toISOString(); }
+function vif(o) { return o && !o.supprime; }
+
+/* ======================= Dates ======================= */
+
+function p2(n) { return String(n).padStart(2, "0"); }
+function jourISO(d) { return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; }
+function deJour(s) { const [a, m, j] = String(s).split("-").map(Number); return new Date(a, (m || 1) - 1, j || 1); }
+function debutDuMois(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function decalerMois(d, n) { return new Date(d.getFullYear(), d.getMonth() + n, 1); }
+function joursDuMois(a, m) { return new Date(a, m + 1, 0).getDate(); }
+function cleMois(d) { return `${d.getFullYear()}-${p2(d.getMonth() + 1)}`; }
+function aujourdHui() { return jourISO(new Date()); }
+
+function ecartEnJours(depuisISO, versISO) {
+  const ms = deJour(versISO).getTime() - deJour(depuisISO).getTime();
+  return Math.round(ms / 86400000);
+}
+
+function libelleRelatif(dateISO) {
+  const n = ecartEnJours(aujourdHui(), dateISO);
+  if (n === 0) return "aujourd'hui";
+  if (n === 1) return "demain";
+  if (n > 1) return `dans ${n} jours`;
+  if (n === -1) return "hier";
+  return `il y a ${Math.abs(n)} jours`;
+}
+
+const fmtMois = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+const fmtMoisCourt = new Intl.DateTimeFormat("fr-FR", { month: "short" });
+const fmtJourLong = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+const fmtJourCourt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+
+function montant(valeur) {
+  const n = Number(valeur) || 0;
+  try {
+    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: ETAT.reglages.devise }).format(n);
+  } catch (e) {
+    return n.toLocaleString("fr-FR") + " " + ETAT.reglages.devise;
+  }
+}
+
+function montantCourt(valeur) {
+  const n = Math.round(Number(valeur) || 0);
+  if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(1).replace(".0", "") + " M";
+  if (Math.abs(n) >= 1000) return Math.round(n / 1000) + " k";
+  return String(n);
+}
+
+function esc(texte) {
+  return String(texte ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ======================= Récurrence ======================= */
+
+function occurrenceNumero(prevue, index) {
+  const debut = deJour(prevue.dateDebut);
+  if (prevue.frequence === "unique") return index === 0 ? prevue.dateDebut : null;
+
+  if (prevue.frequence === "quotidien" || prevue.frequence === "hebdomadaire") {
+    const pas = prevue.frequence === "hebdomadaire" ? 7 : 1;
+    const d = new Date(debut);
+    d.setDate(d.getDate() + pas * (prevue.intervalle || 1) * index);
+    return jourISO(d);
+  }
+
+  const moisParPeriode = { mensuel: 1, trimestriel: 3, annuel: 12 }[prevue.frequence] || 1;
+  const decalage = moisParPeriode * (prevue.intervalle || 1) * index;
+  const cible = new Date(debut.getFullYear(), debut.getMonth() + decalage, 1);
+  const voulu = prevue.jourDuMois || debut.getDate();
+  const dernier = joursDuMois(cible.getFullYear(), cible.getMonth());
+  return jourISO(new Date(cible.getFullYear(), cible.getMonth(), Math.min(voulu, dernier)));
+}
+
+function occurrencesEntre(prevue, debutISO, finISO, limite = 200) {
+  const resultats = [];
+  for (let i = 0; i < 2000 && resultats.length < limite; i++) {
+    const date = occurrenceNumero(prevue, i);
+    if (!date) break;
+    if (prevue.dateFin && date > prevue.dateFin) break;
+    if (date > finISO) break;
+    if (date < prevue.dateDebut) continue;
+    if (date >= debutISO) resultats.push(date);
+    if (prevue.frequence === "unique") break;
+  }
+  return resultats;
+}
+
+function prochainesOccurrences(prevue, aPartirISO, nombre) {
+  const resultats = [];
+  for (let i = 0; i < 2000 && resultats.length < nombre; i++) {
+    const date = occurrenceNumero(prevue, i);
+    if (!date) break;
+    if (prevue.dateFin && date > prevue.dateFin) break;
+    if (date < prevue.dateDebut) continue;
+    if (date >= aPartirISO) resultats.push(date);
+    if (prevue.frequence === "unique") break;
+  }
+  return resultats;
+}
+
+function libelleFrequence(prevue) {
+  const n = prevue.intervalle || 1;
+  if (n <= 1) return (FREQUENCES.find((f) => f[0] === prevue.frequence) || ["", ""])[1];
+  return { quotidien: `Tous les ${n} jours`, hebdomadaire: `Toutes les ${n} semaines`,
+    mensuel: `Tous les ${n} mois`, trimestriel: `Tous les ${n * 3} mois`, annuel: `Tous les ${n} ans`,
+    unique: "Une seule fois" }[prevue.frequence];
+}
+
+/* ======================= Calculs ======================= */
+
+function depensesDuMois(mois) {
+  const cle = cleMois(mois);
+  return ETAT.depenses.filter((d) => vif(d) && d.date.startsWith(cle));
+}
+
+function total(liste) { return liste.reduce((somme, d) => somme + (Number(d.montant) || 0), 0); }
+
+function echeancesEntre(debutISO, finISO) {
+  const payees = new Map();
+  ETAT.depenses.filter(vif).forEach((d) => {
+    if (d.origineId && d.echeance) payees.set(d.origineId + "|" + d.echeance, d);
+  });
+  const ignorees = new Set(ETAT.sauts.filter(vif).map((s) => s.prevueId + "|" + s.date));
+  const jour = aujourdHui();
+  const resultats = [];
+
+  ETAT.prevues.filter((p) => vif(p) && p.actif !== false).forEach((prevue) => {
+    occurrencesEntre(prevue, debutISO, finISO).forEach((date) => {
+      const cle = prevue.id + "|" + date;
+      const depense = payees.get(cle);
+      let statut = "avenir";
+      if (depense) statut = "paye";
+      else if (ignorees.has(cle)) statut = "ignore";
+      else if (date < jour) statut = "retard";
+      else if (date === jour) statut = "aujourdhui";
+      resultats.push({ prevue, date, statut, depense, montant: depense ? depense.montant : prevue.montant });
+    });
+  });
+
+  return resultats.sort((a, b) => (a.date === b.date ? a.prevue.libelle.localeCompare(b.prevue.libelle) : a.date.localeCompare(b.date)));
+}
+
+function aRegler(e) { return e.statut === "retard" || e.statut === "aujourdhui" || e.statut === "avenir"; }
+
+function echeancesDuMois(mois) {
+  const debut = jourISO(debutDuMois(mois));
+  const fin = jourISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0));
+  return echeancesEntre(debut, fin);
+}
+
+function categorie(id) { return ETAT.categories.find((c) => vif(c) && c.id === id) || null; }
+function categoriesTriees() { return ETAT.categories.filter(vif).sort((a, b) => (a.ordre || 0) - (b.ordre || 0)); }
+
+function totauxParCategorie(liste) {
+  const paniers = new Map();
+  liste.forEach((d) => {
+    const cle = d.categorieId || "sans";
+    paniers.set(cle, (paniers.get(cle) || 0) + (Number(d.montant) || 0));
+  });
+  return [...paniers.entries()]
+    .map(([cle, somme]) => ({ cat: categorie(cle), somme }))
+    .sort((a, b) => b.somme - a.somme);
+}
+
+/* ======================= Rendu ======================= */
+
+const vue = document.getElementById("vue");
+const titreVue = document.getElementById("titre-vue");
+const sousTitre = document.getElementById("sous-titre");
+const navMois = document.getElementById("navmois");
+const libelleMois = document.getElementById("libelle-mois");
+
+const ICONES = {
+  accueil: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/>',
+  depenses: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/>',
+  prevues: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 14v3l2 1"/>',
+  stats: '<path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/>',
+  reglages: '<circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.2M12 18.8V21M21 12h-2.2M5.2 12H3M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6M18.4 18.4l-1.6-1.6M7.2 7.2 5.6 5.6"/>',
+};
+const NOMS_ONGLETS = { accueil: "Accueil", depenses: "Dépenses", prevues: "Prévues", stats: "Analyse", reglages: "Réglages" };
+
+function rendreOnglets() {
+  document.getElementById("onglets").innerHTML = Object.keys(NOMS_ONGLETS).map((cle) => `
+    <button type="button" data-action="onglet:${cle}" aria-current="${UI.onglet === cle}">
+      <svg viewBox="0 0 24 24" aria-hidden="true">${ICONES[cle]}</svg>${NOMS_ONGLETS[cle]}
+    </button>`).join("");
+}
+
+function rendre() {
+  rendreOnglets();
+  const avecMois = UI.onglet === "depenses" || UI.onglet === "prevues" || UI.onglet === "stats";
+  navMois.hidden = !avecMois;
+  if (avecMois) libelleMois.textContent = fmtMois.format(UI.mois);
+  document.getElementById("bouton-ajout").hidden = UI.onglet === "reglages" || UI.onglet === "stats";
+
+  if (UI.onglet === "accueil") vueAccueil();
+  else if (UI.onglet === "depenses") vueDepenses();
+  else if (UI.onglet === "prevues") vuePrevues();
+  else if (UI.onglet === "stats") vueStats();
+  else vueReglages();
+}
+
+function pastille(cat, emojiDefaut) {
+  const couleur = cat ? cat.couleur : "#6C7A73";
+  return `<div class="pastille" style="background:${couleur}22;color:${couleur}">${cat ? cat.emoji : emojiDefaut}</div>`;
+}
+
+function ligneDepense(d) {
+  const cat = categorie(d.categorieId);
+  const moyen = (MOYENS.find((m) => m[0] === d.moyen) || ["", "Autre"])[1];
+  return `<button class="ligne" type="button" data-action="modifier-depense:${d.id}">
+    ${pastille(cat, "💸")}
+    <div class="corps">
+      <div class="titre">${esc(d.libelle)}</div>
+      <div class="detail">${esc(cat ? cat.nom : "Sans catégorie")} · ${esc(moyen)}${d.origineId ? " · prévue" : ""}</div>
+    </div>
+    <div class="montant">${montant(d.montant)}</div>
+  </button>`;
+}
+
+function ligneEcheance(e, avecActions) {
+  const cat = categorie(e.prevue.categorieId);
+  const etiquettes = { paye: ["paye", "Payé"], retard: ["retard", "En retard"], aujourdhui: ["aujourdhui", "Aujourd'hui"], avenir: ["avenir", "À venir"], ignore: ["ignore", "Ignoré"] }[e.statut];
+  const actions = !avecActions ? "" : (aRegler(e)
+    ? `<div class="actions-ligne">
+         <button class="bpetit vert" type="button" data-action="payer:${e.prevue.id}:${e.date}">Payé</button>
+         <button class="bpetit" type="button" data-action="ignorer:${e.prevue.id}:${e.date}">Passer</button>
+       </div>`
+    : (e.statut === "ignore"
+        ? `<div class="actions-ligne"><button class="bpetit" type="button" data-action="retablir:${e.prevue.id}:${e.date}">Rétablir</button></div>`
+        : `<div class="actions-ligne"><button class="bpetit" type="button" data-action="annuler-paiement:${e.depense.id}">Annuler</button></div>`));
+
+  return `<div class="ligne">
+    ${pastille(cat, "🗓")}
+    <div class="corps">
+      <div class="titre">${esc(e.prevue.libelle)}</div>
+      <div class="detail">${fmtJourCourt.format(deJour(e.date))} · ${libelleRelatif(e.date)}</div>
+    </div>
+    <div class="fin">
+      <div class="montant">${montant(e.montant)}</div>
+      <span class="puce ${etiquettes[0]}">${etiquettes[1]}</span>
+    </div>
+  </div>${actions ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 6px">${actions}</div>` : ""}`;
+}
+
+function vueAccueil() {
+  const mois = debutDuMois(new Date());
+  titreVue.textContent = "Accueil";
+  sousTitre.textContent = fmtMois.format(mois).replace(/^./, (c) => c.toUpperCase());
+
+  const duMois = depensesDuMois(mois);
+  const depense = total(duMois);
+  const ech = echeancesDuMois(mois);
+  const restant = ech.filter(aRegler);
+  const resteAPayer = restant.reduce((s, e) => s + (Number(e.montant) || 0), 0);
+  const budget = Number(ETAT.reglages.budget) || 0;
+  const previsionnel = depense + resteAPayer;
+
+  const moisPrecedent = total(depensesDuMois(decalerMois(mois, -1)));
+  const ecart = moisPrecedent > 0 ? Math.round(((depense - moisPrecedent) / moisPrecedent) * 100) : null;
+
+  let blocBudget = "";
+  if (budget > 0) {
+    const part = Math.min(1, depense / budget);
+    const classe = depense >= budget ? "rouge" : depense / budget >= (ETAT.reglages.seuil || 0.8) ? "chaud" : "";
+    const reste = budget - depense;
+    blocBudget = `
+      <div class="jauge ${classe}"><span style="width:${(part * 100).toFixed(1)}%"></span></div>
+      <div class="ligne-sec">
+        <span>${Math.round((depense / budget) * 100)} % du budget</span>
+        <span>${reste >= 0 ? `reste <b>${montant(reste)}</b>` : `<b style="color:var(--critique)">dépassé de ${montant(-reste)}</b>`}</span>
+      </div>
+      ${resteAPayer > 0 ? `<div class="mini" style="margin-top:6px">Fin de mois estimée : <b style="color:${previsionnel > budget ? "var(--critique)" : "var(--encre)"}">${montant(previsionnel)}</b> en comptant les échéances à venir.</div>` : ""}`;
+  } else {
+    blocBudget = `<div class="mini" style="margin-top:10px">Aucun budget défini. <button class="lien" type="button" data-action="onglet:reglages">En définir un</button> pour être prévenu avant de le dépasser.</div>`;
+  }
+
+  const retards = ech.filter((e) => e.statut === "retard");
+  const prochaines = echeancesEntre(aujourdHui(), jourISO(new Date(Date.now() + 60 * 86400000))).filter(aRegler).slice(0, 5);
+  const dernieres = duMois.slice().sort((a, b) => b.date.localeCompare(a.date) || String(b.creeLe || "").localeCompare(String(a.creeLe || ""))).slice(0, 5);
+
+  vue.innerHTML = `
+    <section class="resume">
+      <div class="etiq">Dépensé ce mois</div>
+      <div class="gros chiffre">${montant(depense)}</div>
+      ${ecart === null ? "" : `<div class="mini">${ecart >= 0 ? "+" : ""}${ecart} % par rapport au mois dernier</div>`}
+      ${blocBudget}
+    </section>
+
+    <div class="duo">
+      <div class="tuile">
+        <div class="etiq">Reste à payer</div>
+        <div class="val chiffre">${montant(resteAPayer)}</div>
+        <div class="det">${restant.length} échéance${restant.length > 1 ? "s" : ""} ce mois</div>
+      </div>
+      <div class="tuile">
+        <div class="etiq">Déjà réglé</div>
+        <div class="val chiffre">${montant(ech.filter((e) => e.statut === "paye").reduce((s, e) => s + Number(e.montant || 0), 0))}</div>
+        <div class="det">sur vos dépenses prévues</div>
+      </div>
+    </div>
+
+    ${retards.length ? `<section class="bloc" style="border-color:color-mix(in srgb, var(--critique) 40%, var(--ligne))">
+      <h2 style="color:var(--critique)">En retard</h2>
+      <div class="liste">${retards.map((e) => ligneEcheance(e, true)).join("")}</div>
+    </section>` : ""}
+
+    <section class="bloc">
+      <div class="bloc-tete"><h2>Prochaines échéances</h2><button class="lien" type="button" data-action="onglet:prevues">Tout voir</button></div>
+      ${prochaines.length
+        ? `<div class="liste">${prochaines.map((e) => ligneEcheance(e, true)).join("")}</div>`
+        : `<div class="vide"><b>Rien de prévu</b>Ajoutez vos dépenses qui reviennent chaque mois (loyer, factures, abonnements) pour ne plus jamais les oublier.<div style="margin-top:12px"><button class="bouton fant" type="button" data-action="nouvelle-prevue">Programmer une dépense</button></div></div>`}
+    </section>
+
+    <section class="bloc">
+      <div class="bloc-tete"><h2>Dernières dépenses</h2><button class="lien" type="button" data-action="onglet:depenses">Tout voir</button></div>
+      ${dernieres.length
+        ? `<div class="liste">${dernieres.map(ligneDepense).join("")}</div>`
+        : `<div class="vide"><b>Aucune dépense ce mois</b>Touchez le bouton + pour noter votre première dépense.</div>`}
+    </section>
+
+    <div class="etat-sync">${texteSync()}</div>`;
+}
+
+function vueDepenses() {
+  titreVue.textContent = "Dépenses";
+  const liste = depensesDuMois(UI.mois)
+    .filter((d) => {
+      if (!UI.recherche) return true;
+      const t = UI.recherche.toLowerCase();
+      const cat = categorie(d.categorieId);
+      return d.libelle.toLowerCase().includes(t) || (d.notes || "").toLowerCase().includes(t) || (cat && cat.nom.toLowerCase().includes(t));
+    })
+    .sort((a, b) => b.date.localeCompare(a.date) || String(b.creeLe || "").localeCompare(String(a.creeLe || "")));
+
+  sousTitre.textContent = `${liste.length} dépense${liste.length > 1 ? "s" : ""} · ${montant(total(liste))}`;
+
+  const parJour = new Map();
+  liste.forEach((d) => { if (!parJour.has(d.date)) parJour.set(d.date, []); parJour.get(d.date).push(d); });
+
+  const groupes = [...parJour.entries()].map(([jour, items]) => `
+    <div class="jour-tete"><b>${jour === aujourdHui() ? "Aujourd'hui" : fmtJourLong.format(deJour(jour))}</b><span>${montant(total(items))}</span></div>
+    <section class="bloc" style="margin-bottom:8px"><div class="liste">${items.map(ligneDepense).join("")}</div></section>`).join("");
+
+  vue.innerHTML = `
+    <label class="champ"><input type="text" id="recherche" placeholder="Rechercher une dépense" value="${esc(UI.recherche)}" autocomplete="off"></label>
+    ${liste.length ? groupes : `<section class="bloc"><div class="vide"><b>Aucune dépense</b>${UI.recherche ? "Aucun résultat pour cette recherche." : "Rien n'a été noté pour ce mois."}</div></section>`}`;
+
+  const champ = document.getElementById("recherche");
+  champ.addEventListener("input", (e) => { UI.recherche = e.target.value; const pos = e.target.selectionStart; rendre(); const n = document.getElementById("recherche"); n.focus(); n.setSelectionRange(pos, pos); });
+}
+
+function vuePrevues() {
+  titreVue.textContent = "Dépenses prévues";
+  const ech = echeancesDuMois(UI.mois);
+  const prevues = ETAT.prevues.filter(vif).sort((a, b) => a.libelle.localeCompare(b.libelle));
+  const aPayer = ech.filter(aRegler).reduce((s, e) => s + Number(e.montant || 0), 0);
+  const prevu = ech.filter((e) => e.statut !== "ignore").reduce((s, e) => s + Number(e.montant || 0), 0);
+  sousTitre.textContent = `${ech.length} échéance${ech.length > 1 ? "s" : ""} · ${montant(prevu)}`;
+
+  vue.innerHTML = `
+    <div class="duo">
+      <div class="tuile"><div class="etiq">Total prévu</div><div class="val chiffre">${montant(prevu)}</div><div class="det">ce mois-ci</div></div>
+      <div class="tuile"><div class="etiq">Reste à payer</div><div class="val chiffre" style="color:var(--attention)">${montant(aPayer)}</div><div class="det">${ech.filter(aRegler).length} échéance(s)</div></div>
+    </div>
+
+    <section class="bloc">
+      <h2>Échéances du mois</h2>
+      ${ech.length ? `<div class="liste">${ech.map((e) => ligneEcheance(e, true)).join("")}</div>`
+        : `<div class="vide"><b>Aucune échéance</b>Aucune dépense prévue ne tombe sur ce mois.</div>`}
+    </section>
+
+    <section class="bloc">
+      <div class="bloc-tete"><h2>Mes dépenses récurrentes</h2><button class="lien" type="button" data-action="nouvelle-prevue">Ajouter</button></div>
+      ${prevues.length ? `<div class="liste">${prevues.map((p) => {
+        const cat = categorie(p.categorieId);
+        const suivante = p.actif === false ? null : prochainesOccurrences(p, aujourdHui(), 1)[0];
+        return `<button class="ligne" type="button" data-action="modifier-prevue:${p.id}">
+          ${pastille(cat, "🔁")}
+          <div class="corps">
+            <div class="titre" style="${p.actif === false ? "color:var(--encre-3)" : ""}">${esc(p.libelle)}</div>
+            <div class="detail">${esc(libelleFrequence(p))}${suivante ? ` · le ${fmtJourCourt.format(deJour(suivante))}` : p.actif === false ? " · suspendue" : " · terminée"}</div>
+          </div>
+          <div class="fin"><div class="montant">${montant(p.montant)}</div>${p.estime ? '<span class="puce avenir">estimé</span>' : ""}</div>
+        </button>`;
+      }).join("")}</div>` : `<div class="vide"><b>Rien de programmé</b>Le loyer, l'électricité, l'école, un abonnement… notez-les une fois, l'app s'occupe du reste.</div>`}
+    </section>`;
+}
+
+function vueStats() {
+  titreVue.textContent = "Analyse";
+  const duMois = depensesDuMois(UI.mois);
+  const somme = total(duMois);
+  sousTitre.textContent = `${montant(somme)} dépensés`;
+
+  const historique = [];
+  for (let i = 5; i >= 0; i--) {
+    const m = decalerMois(UI.mois, -i);
+    historique.push({ mois: m, somme: total(depensesDuMois(m)) });
+  }
+  const maxi = Math.max(...historique.map((h) => h.somme), 1);
+  const renseignes = historique.filter((h) => h.somme > 0);
+  const moyenne = renseignes.length ? renseignes.reduce((s, h) => s + h.somme, 0) / renseignes.length : 0;
+
+  const parCat = totauxParCategorie(duMois);
+  const plusGrosses = duMois.slice().sort((a, b) => b.montant - a.montant).slice(0, 5);
+
+  vue.innerHTML = `
+    <section class="bloc">
+      <h2>Six derniers mois</h2>
+      <div class="barres">
+        ${historique.map((h) => `
+          <div class="col ${cleMois(h.mois) === cleMois(UI.mois) ? "actif" : ""}">
+            <div class="val">${h.somme ? montantCourt(h.somme) : ""}</div>
+            <div class="tige" style="height:${Math.max(3, (h.somme / maxi) * 100)}%"></div>
+          </div>`).join("")}
+      </div>
+      <div class="barres-pied">${historique.map((h) => `<span>${fmtMoisCourt.format(h.mois).replace(".", "")}</span>`).join("")}</div>
+      <div class="mini" style="margin-top:10px">Moyenne des mois utilisés : <b>${montant(moyenne)}</b></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Où part l'argent</h2>
+      ${parCat.length ? parCat.map((t) => {
+        const part = somme > 0 ? t.somme / somme : 0;
+        const couleur = t.cat ? t.cat.couleur : "#6C7A73";
+        const plafond = t.cat && t.cat.plafond > 0 ? t.cat.plafond : 0;
+        return `<div class="cat-ligne">
+          <div class="cat-haut"><b>${t.cat ? t.cat.emoji + " " + esc(t.cat.nom) : "❔ Sans catégorie"}</b><span>${montant(t.somme)}</span></div>
+          <div class="cat-jauge"><span style="width:${(part * 100).toFixed(1)}%;background:${couleur}"></span></div>
+          <div class="cat-bas"><span>${Math.round(part * 100)} % des dépenses</span>${plafond ? `<span style="color:${t.somme > plafond ? "var(--critique)" : "var(--encre-3)"}">${t.somme > plafond ? "plafond dépassé" : "plafond"} : ${montant(plafond)}</span>` : ""}</div>
+        </div>`;
+      }).join("") : `<div class="vide"><b>Pas encore de données</b>Notez quelques dépenses pour voir la répartition.</div>`}
+    </section>
+
+    ${plusGrosses.length ? `<section class="bloc">
+      <h2>Les cinq plus grosses</h2>
+      <div class="liste">${plusGrosses.map(ligneDepense).join("")}</div>
+    </section>` : ""}`;
+}
+
+function vueReglages() {
+  titreVue.textContent = "Réglages";
+  sousTitre.textContent = "Vos données restent sur votre iPhone";
+  const r = ETAT.reglages;
+
+  vue.innerHTML = `
+    <section class="bloc">
+      <h2>Argent</h2>
+      <label class="champ"><span>Devise</span>
+        <select id="r-devise">${DEVISES.map((d) => `<option value="${d}" ${d === r.devise ? "selected" : ""}>${d}</option>`).join("")}</select>
+      </label>
+      <label class="champ"><span>Budget du mois (0 = aucun)</span>
+        <input type="number" inputmode="decimal" id="r-budget" value="${r.budget || 0}" min="0" step="any">
+      </label>
+      <label class="champ"><span>Me prévenir à partir de</span>
+        <select id="r-seuil">${[0.5, 0.7, 0.8, 0.9, 1].map((s) => `<option value="${s}" ${Math.abs((r.seuil || 0.8) - s) < 0.001 ? "selected" : ""}>${Math.round(s * 100)} % du budget</option>`).join("")}</select>
+      </label>
+    </section>
+
+    <section class="bloc">
+      <div class="bloc-tete"><h2>Catégories</h2><button class="lien" type="button" data-action="nouvelle-categorie">Ajouter</button></div>
+      <div class="liste">${categoriesTriees().map((c) => `
+        <button class="ligne" type="button" data-action="modifier-categorie:${c.id}">
+          ${pastille(c, "💸")}
+          <div class="corps"><div class="titre">${esc(c.nom)}</div>
+          <div class="detail">${c.plafond > 0 ? "Plafond : " + montant(c.plafond) : "Sans plafond"}</div></div>
+          <div class="montant" style="color:var(--encre-3);font-weight:500">${ETAT.depenses.filter((d) => vif(d) && d.categorieId === c.id).length}</div>
+        </button>`).join("")}</div>
+    </section>
+
+    <section class="bloc">
+      <h2>Rappels</h2>
+      <p class="mini">Une app web ne peut pas envoyer d'alerte toute seule sur iPhone. MonBudget fabrique donc un fichier de rappels que le <b>Calendrier de l'iPhone</b> ouvre : vous recevez ensuite une vraie notification avant chaque échéance, même app fermée.</p>
+      <div style="margin-top:12px"><button class="bouton" type="button" data-action="exporter-ics">Créer mes rappels de calendrier</button></div>
+      <p class="note">À refaire après avoir ajouté ou modifié une dépense prévue.</p>
+    </section>
+
+    <section class="bloc">
+      <h2>Données</h2>
+      <button class="bouton fant" type="button" data-action="exporter-csv">Exporter mes dépenses (CSV)</button>
+      <button class="bouton fant" type="button" data-action="exporter-json">Sauvegarder tout (fichier JSON)</button>
+      <button class="bouton fant" type="button" data-action="importer-json">Restaurer une sauvegarde</button>
+      <button class="bouton fant" type="button" data-action="exemple">Charger des données d'exemple</button>
+      <button class="bouton danger" type="button" data-action="effacer">Tout effacer</button>
+      <input type="file" id="fichier-import" accept="application/json,.json" hidden>
+    </section>
+
+    <section class="bloc">
+      <h2>Installer sur l'écran d'accueil</h2>
+      <p class="mini">Dans Safari : bouton <b>Partager</b> (carré avec la flèche) → <b>Sur l'écran d'accueil</b>. MonBudget s'ouvre alors en plein écran, avec son icône, comme une application.</p>
+      <div class="etat-sync" style="text-align:left;margin-top:10px">${texteSync()}</div>
+    </section>`;
+
+  document.getElementById("r-devise").addEventListener("change", (e) => { ETAT.reglages.devise = e.target.value; ETAT.reglages.majAt = horodatage(); enregistrer(); rendre(); });
+  document.getElementById("r-budget").addEventListener("change", (e) => { ETAT.reglages.budget = Math.max(0, Number(e.target.value) || 0); ETAT.reglages.majAt = horodatage(); enregistrer(); });
+  document.getElementById("r-seuil").addEventListener("change", (e) => { ETAT.reglages.seuil = Number(e.target.value); ETAT.reglages.majAt = horodatage(); enregistrer(); });
+  document.getElementById("fichier-import").addEventListener("change", importerFichier);
+}
+
+function texteSync() {
+  if (etatSync === "distant") return "Enregistré sur cet iPhone et sauvegardé en ligne.";
+  return "Enregistré sur cet iPhone. Pensez à faire une sauvegarde (Réglages ▸ Données).";
+}
+
+/* ======================= Feuilles (formulaires) ======================= */
+
+const feuille = document.getElementById("feuille");
+const feuilleContenu = document.getElementById("feuille-contenu");
+
+function ouvrirFeuille(titre, corps, surSoumission, texteValider = "Enregistrer") {
+  feuilleContenu.innerHTML = `
+    <div class="poignee"></div>
+    <div class="feuille-tete">
+      <button type="button" data-action="fermer">Annuler</button>
+      <h2>${esc(titre)}</h2>
+      <button type="submit" form="formulaire">${esc(texteValider)}</button>
+    </div>
+    <form id="formulaire">${corps}<button class="bouton" type="submit" style="margin-top:6px">${esc(texteValider)}</button></form>`;
+  feuille.showModal();
+  const form = document.getElementById("formulaire");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const donnees = Object.fromEntries(new FormData(form).entries());
+    if (surSoumission(donnees) !== false) { feuille.close(); enregistrer(); rendre(); }
+  });
+}
+
+function fermerFeuille() { feuille.close(); }
+
+function optionsCategories(choisie) {
+  return `<option value="">Sans catégorie</option>` +
+    categoriesTriees().map((c) => `<option value="${c.id}" ${c.id === choisie ? "selected" : ""}>${c.emoji}  ${esc(c.nom)}</option>`).join("");
+}
+
+function optionsMoyens(choisi) {
+  return MOYENS.map(([cle, nom]) => `<option value="${cle}" ${cle === choisi ? "selected" : ""}>${nom}</option>`).join("");
+}
+
+function formDepense(id) {
+  const d = id ? ETAT.depenses.find((x) => x.id === id) : null;
+  const corps = `
+    <label class="champ"><span>Montant (${esc(ETAT.reglages.devise)})</span>
+      <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${d ? d.montant : ""}" placeholder="0" ${d ? "" : "autofocus"}></label>
+    <label class="champ"><span>Pour quoi ?</span>
+      <input type="text" name="libelle" required maxlength="60" value="${d ? esc(d.libelle) : ""}" placeholder="Marché, taxi, pharmacie…"></label>
+    <div class="rangee">
+      <label class="champ"><span>Date</span><input type="date" name="date" required value="${d ? d.date : aujourdHui()}"></label>
+      <label class="champ"><span>Payé par</span><select name="moyen">${optionsMoyens(d ? d.moyen : "especes")}</select></label>
+    </div>
+    <label class="champ"><span>Catégorie</span><select name="categorieId">${optionsCategories(d ? d.categorieId : "")}</select></label>
+    <label class="champ"><span>Note (facultatif)</span><textarea name="notes" maxlength="300">${d ? esc(d.notes || "") : ""}</textarea></label>
+    ${d ? "" : `<div class="bascule"><span>Cette dépense revient chaque mois</span><input type="checkbox" name="recurrente" value="1"></div>`}
+    ${d ? `<button class="bouton danger" type="button" data-action="supprimer-depense:${d.id}" style="margin-top:10px">Supprimer cette dépense</button>` : ""}`;
+
+  ouvrirFeuille(d ? "Modifier la dépense" : "Nouvelle dépense", corps, (v) => {
+    const commun = {
+      libelle: v.libelle.trim(), montant: Number(v.montant) || 0, date: v.date,
+      categorieId: v.categorieId || "", moyen: v.moyen, notes: v.notes || "", majAt: horodatage(),
+    };
+    if (!commun.libelle || commun.montant <= 0) return false;
+
+    if (d) Object.assign(d, commun);
+    else {
+      ETAT.depenses.push({ id: identifiant(), creeLe: horodatage(), origineId: "", echeance: "", ...commun });
+      if (v.recurrente) {
+        ETAT.prevues.push({
+          id: identifiant(), libelle: commun.libelle, montant: commun.montant, categorieId: commun.categorieId,
+          moyen: commun.moyen, frequence: "mensuel", intervalle: 1, dateDebut: commun.date,
+          jourDuMois: deJour(commun.date).getDate(), dateFin: "", rappelJours: 2, rappelHeure: 9,
+          estime: false, actif: true, notes: "", majAt: horodatage(),
+        });
+      }
+    }
+  });
+}
+
+function formPrevue(id) {
+  const p = id ? ETAT.prevues.find((x) => x.id === id) : null;
+  const jour = p ? (p.jourDuMois || deJour(p.dateDebut).getDate()) : new Date().getDate();
+  const corps = `
+    <label class="champ"><span>Montant (${esc(ETAT.reglages.devise)})</span>
+      <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${p ? p.montant : ""}" placeholder="0"></label>
+    <label class="champ"><span>Quelle dépense ?</span>
+      <input type="text" name="libelle" required maxlength="60" value="${p ? esc(p.libelle) : ""}" placeholder="Loyer, électricité, école…"></label>
+    <div class="rangee">
+      <label class="champ"><span>Catégorie</span><select name="categorieId">${optionsCategories(p ? p.categorieId : "")}</select></label>
+      <label class="champ"><span>Payé par</span><select name="moyen">${optionsMoyens(p ? p.moyen : "mobile")}</select></label>
+    </div>
+    <div class="rangee">
+      <label class="champ"><span>Fréquence</span><select name="frequence">${FREQUENCES.map(([c, n]) => `<option value="${c}" ${p && p.frequence === c ? "selected" : c === "mensuel" && !p ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      <label class="champ"><span>Jour du mois</span><select name="jourDuMois">${Array.from({ length: 31 }, (_, i) => i + 1).map((j) => `<option value="${j}" ${j === jour ? "selected" : ""}>le ${j}</option>`).join("")}</select></label>
+    </div>
+    <div class="rangee">
+      <label class="champ"><span>À partir du</span><input type="date" name="dateDebut" required value="${p ? p.dateDebut : aujourdHui()}"></label>
+      <label class="champ"><span>Jusqu'au (facultatif)</span><input type="date" name="dateFin" value="${p ? p.dateFin || "" : ""}"></label>
+    </div>
+    <div class="rangee">
+      <label class="champ"><span>Me prévenir</span><select name="rappelJours">${[[0, "le jour même"], [1, "1 jour avant"], [2, "2 jours avant"], [3, "3 jours avant"], [5, "5 jours avant"], [7, "1 semaine avant"]].map(([v, n]) => `<option value="${v}" ${p && Number(p.rappelJours) === v ? "selected" : !p && v === 2 ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      <label class="champ"><span>À quelle heure</span><select name="rappelHeure">${Array.from({ length: 17 }, (_, i) => i + 6).map((h) => `<option value="${h}" ${p && Number(p.rappelHeure) === h ? "selected" : !p && h === 9 ? "selected" : ""}>${h} h</option>`).join("")}</select></label>
+    </div>
+    <div class="bascule"><span>Montant variable (estimation)</span><input type="checkbox" name="estime" value="1" ${p && p.estime ? "checked" : ""}></div>
+    ${p ? `<div class="bascule"><span>Active</span><input type="checkbox" name="actif" value="1" ${p.actif !== false ? "checked" : ""}></div>` : ""}
+    ${p ? `<div class="mini" style="margin-top:10px">Prochaines échéances : ${prochainesOccurrences(p, aujourdHui(), 3).map((d) => fmtJourCourt.format(deJour(d))).join(" · ") || "aucune"}</div>
+           <button class="bouton danger" type="button" data-action="supprimer-prevue:${p.id}" style="margin-top:10px">Supprimer cette dépense prévue</button>` : ""}`;
+
+  ouvrirFeuille(p ? "Modifier la dépense prévue" : "Programmer une dépense", corps, (v) => {
+    const commun = {
+      libelle: v.libelle.trim(), montant: Number(v.montant) || 0, categorieId: v.categorieId || "",
+      moyen: v.moyen, frequence: v.frequence, intervalle: 1, dateDebut: v.dateDebut, dateFin: v.dateFin || "",
+      jourDuMois: Number(v.jourDuMois) || 1, rappelJours: Number(v.rappelJours), rappelHeure: Number(v.rappelHeure),
+      estime: !!v.estime, actif: p ? !!v.actif : true, majAt: horodatage(),
+    };
+    if (!commun.libelle || commun.montant <= 0) return false;
+    if (p) Object.assign(p, commun);
+    else ETAT.prevues.push({ id: identifiant(), notes: "", ...commun });
+  }, p ? "Enregistrer" : "Programmer");
+}
+
+function formPaiement(prevueId, date) {
+  const prevue = ETAT.prevues.find((x) => x.id === prevueId);
+  if (!prevue) return;
+  const corps = `
+    <div class="bloc" style="background:var(--surface);margin-bottom:14px">
+      <div class="ligne" style="padding-top:0">
+        ${pastille(categorie(prevue.categorieId), "🗓")}
+        <div class="corps"><div class="titre">${esc(prevue.libelle)}</div>
+        <div class="detail">Échéance du ${fmtJourLong.format(deJour(date))}</div></div>
+      </div>
+    </div>
+    <label class="champ"><span>Montant réellement payé (${esc(ETAT.reglages.devise)})</span>
+      <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${prevue.montant}"></label>
+    <label class="champ"><span>Payé le</span><input type="date" name="date" required value="${date}"></label>`;
+
+  ouvrirFeuille("Régler l'échéance", corps, (v) => {
+    const somme = Number(v.montant) || 0;
+    if (somme <= 0) return false;
+    ETAT.sauts.filter((s) => vif(s) && s.prevueId === prevueId && s.date === date).forEach((s) => { s.supprime = true; s.majAt = horodatage(); });
+    ETAT.depenses.push({
+      id: identifiant(), libelle: prevue.libelle, montant: somme, date: v.date,
+      categorieId: prevue.categorieId, moyen: prevue.moyen, notes: "",
+      origineId: prevueId, echeance: date, creeLe: horodatage(), majAt: horodatage(),
+    });
+  }, "Confirmer le paiement");
+}
+
+function formCategorie(id) {
+  const c = id ? ETAT.categories.find((x) => x.id === id) : null;
+  const emojiActuel = c ? c.emoji : "💸";
+  const couleurActuelle = c ? c.couleur : PALETTE[0];
+  const corps = `
+    <label class="champ"><span>Nom</span><input type="text" name="nom" required maxlength="30" value="${c ? esc(c.nom) : ""}" placeholder="Ex : Coiffure"></label>
+    <div class="champ"><span>Icône</span>
+      <div class="grille-emoji" id="choix-emoji">${EMOJIS.map((e) => `<button type="button" data-emoji="${e}" aria-pressed="${e === emojiActuel}">${e}</button>`).join("")}</div>
+      <input type="hidden" name="emoji" id="emoji-choisi" value="${emojiActuel}"></div>
+    <div class="champ"><span>Couleur</span>
+      <div class="grille-couleur" id="choix-couleur">${PALETTE.map((p) => `<button type="button" data-couleur="${p}" style="background:${p}" aria-pressed="${p === couleurActuelle}" aria-label="Couleur ${p}"></button>`).join("")}</div>
+      <input type="hidden" name="couleur" id="couleur-choisie" value="${couleurActuelle}"></div>
+    <label class="champ"><span>Plafond mensuel (0 = aucun)</span>
+      <input type="number" name="plafond" inputmode="decimal" step="any" min="0" value="${c ? c.plafond || 0 : 0}"></label>
+    ${c ? `<button class="bouton danger" type="button" data-action="supprimer-categorie:${c.id}" style="margin-top:6px">Supprimer cette catégorie</button>` : ""}`;
+
+  ouvrirFeuille(c ? "Modifier la catégorie" : "Nouvelle catégorie", corps, (v) => {
+    const nom = v.nom.trim();
+    if (!nom) return false;
+    const commun = { nom, emoji: v.emoji, couleur: v.couleur, plafond: Number(v.plafond) || 0, majAt: horodatage() };
+    if (c) Object.assign(c, commun);
+    else ETAT.categories.push({ id: identifiant(), ordre: ETAT.categories.length, ...commun });
+  });
+
+  document.getElementById("choix-emoji").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-emoji]"); if (!b) return;
+    document.getElementById("emoji-choisi").value = b.dataset.emoji;
+    [...e.currentTarget.children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+  });
+  document.getElementById("choix-couleur").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-couleur]"); if (!b) return;
+    document.getElementById("couleur-choisie").value = b.dataset.couleur;
+    [...e.currentTarget.children].forEach((x) => x.setAttribute("aria-pressed", x === b));
+  });
+}
+
+function informer(titre, message, actionHTML = "") {
+  feuilleContenu.innerHTML = `
+    <div class="poignee"></div>
+    <div class="feuille-tete"><span></span><h2>${esc(titre)}</h2><button type="button" data-action="fermer">Fermer</button></div>
+    <p class="mini" style="font-size:14px;line-height:1.55">${message}</p>
+    ${actionHTML}
+    <button class="bouton" type="button" data-action="fermer" style="margin-top:14px">J'ai compris</button>`;
+  if (!feuille.open) feuille.showModal();
+}
+
+/* ======================= Actions ======================= */
+
+document.addEventListener("click", (evenement) => {
+  const cible = evenement.target.closest("[data-action], [data-mois]");
+  if (!cible) return;
+
+  if (cible.dataset.mois) {
+    UI.mois = decalerMois(UI.mois, Number(cible.dataset.mois));
+    rendre();
+    return;
+  }
+
+  const [action, ...arguments_] = cible.dataset.action.split(":");
+
+  switch (action) {
+    case "onglet":
+      UI.onglet = arguments_[0]; UI.recherche = ""; window.scrollTo(0, 0); rendre(); break;
+    case "fermer": fermerFeuille(); break;
+    case "nouvelle-depense": formDepense(null); break;
+    case "modifier-depense": formDepense(arguments_[0]); break;
+    case "nouvelle-prevue": formPrevue(null); break;
+    case "modifier-prevue": formPrevue(arguments_[0]); break;
+    case "nouvelle-categorie": formCategorie(null); break;
+    case "modifier-categorie": formCategorie(arguments_[0]); break;
+    case "payer": formPaiement(arguments_[0], arguments_[1]); break;
+    case "ignorer":
+      ETAT.sauts.push({ id: identifiant(), prevueId: arguments_[0], date: arguments_[1], majAt: horodatage() });
+      enregistrer(); rendre(); break;
+    case "retablir":
+      ETAT.sauts.filter((s) => vif(s) && s.prevueId === arguments_[0] && s.date === arguments_[1])
+        .forEach((s) => { s.supprime = true; s.majAt = horodatage(); });
+      enregistrer(); rendre(); break;
+    case "annuler-paiement":
+      marquerSupprime(ETAT.depenses, arguments_[0]); enregistrer(); rendre(); break;
+    case "supprimer-depense":
+      marquerSupprime(ETAT.depenses, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
+    case "supprimer-prevue":
+      marquerSupprime(ETAT.prevues, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
+    case "supprimer-categorie":
+      marquerSupprime(ETAT.categories, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
+    case "exporter-csv": exporterCSV(); break;
+    case "exporter-ics": exporterICS(); break;
+    case "exporter-json": exporterJSON(); break;
+    case "importer-json": document.getElementById("fichier-import").click(); break;
+    case "exemple": chargerExemple(); break;
+    case "effacer": confirmerEffacement(); break;
+    case "effacer-confirme": toutEffacer(); break;
+  }
+});
+
+function marquerSupprime(collection, id) {
+  const objet = collection.find((x) => x.id === id);
+  if (objet) { objet.supprime = true; objet.majAt = horodatage(); }
+}
+
+document.getElementById("bouton-ajout").addEventListener("click", () => {
+  if (UI.onglet === "prevues") formPrevue(null); else formDepense(null);
+});
+
+feuille.addEventListener("click", (e) => { if (e.target === feuille) feuille.close(); });
+
+/* ======================= Exports ======================= */
+
+async function proposerFichier(nom, contenu, type) {
+  const extension = nom.split(".").pop().toLowerCase();
+  if (capTelechargement && ["csv", "json", "txt", "md", "html", "pdf", "zip"].includes(extension)) {
+    try { await capTelechargement.save({ filename: nom, data: contenu }); return true; }
+    catch (erreur) { if (erreur && erreur.code === "declined") return false; }
+  }
+  const lien = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([contenu], { type }));
+  lien.href = url; lien.download = nom; lien.style.display = "none";
+  document.body.appendChild(lien); lien.click();
+  setTimeout(() => { URL.revokeObjectURL(url); lien.remove(); }, 5000);
+  return true;
+}
+
+function exporterCSV() {
+  const lignes = [["Date", "Libellé", "Catégorie", "Montant", "Devise", "Payé par", "Origine", "Note"].join(";")];
+  ETAT.depenses.filter(vif).sort((a, b) => b.date.localeCompare(a.date)).forEach((d) => {
+    const cat = categorie(d.categorieId);
+    const champs = [d.date, d.libelle, cat ? cat.nom : "", String(d.montant).replace(".", ","), ETAT.reglages.devise,
+      (MOYENS.find((m) => m[0] === d.moyen) || ["", ""])[1], d.origineId ? "Prévue" : "Ponctuelle", d.notes || ""];
+    lignes.push(champs.map((c) => (/[";\n]/.test(c) ? '"' + String(c).replace(/"/g, '""') + '"' : c)).join(";"));
+  });
+  proposerFichier(`depenses-${aujourdHui()}.csv`, "\uFEFF" + lignes.join("\n"), "text/csv;charset=utf-8");
+}
+
+function exporterJSON() {
+  proposerFichier(`sauvegarde-monbudget-${aujourdHui()}.json`, JSON.stringify(ETAT, null, 1), "application/json");
+}
+
+function importerFichier(evenement) {
+  const fichier = evenement.target.files && evenement.target.files[0];
+  if (!fichier) return;
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    try {
+      const importe = JSON.parse(String(lecteur.result));
+      if (!importe || !Array.isArray(importe.depenses)) throw new Error("format");
+      ETAT = fusionner(ETAT, importe);
+      enregistrer(); rendre();
+      informer("Sauvegarde restaurée", "Vos dépenses ont été fusionnées avec celles déjà présentes : rien n'a été écrasé.");
+    } catch (e) {
+      informer("Fichier non reconnu", "Ce fichier n'est pas une sauvegarde MonBudget. Choisissez le fichier <b>sauvegarde-monbudget-….json</b> créé par l'application.");
+    }
+    evenement.target.value = "";
+  };
+  lecteur.readAsText(fichier);
+}
+
+/* ---- Rappels pour le Calendrier de l'iPhone (.ics) ---- */
+
+function echapperICS(texte) {
+  return String(texte).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function genererICS() {
+  const compact = (iso) => iso.replace(/-/g, "");
+  const tampon = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const lignes = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//MonBudget//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:MonBudget — échéances"];
+  let nombre = 0;
+
+  ETAT.prevues.filter((p) => vif(p) && p.actif !== false).forEach((prevue) => {
+    const jour = prevue.jourDuMois || deJour(prevue.dateDebut).getDate();
+    const repetable = prevue.frequence !== "unique" && (["quotidien", "hebdomadaire"].includes(prevue.frequence) || jour <= 28);
+    const dates = repetable ? prochainesOccurrences(prevue, aujourdHui(), 1) : prochainesOccurrences(prevue, aujourdHui(), 24);
+
+    let regle = "";
+    if (repetable) {
+      const n = prevue.intervalle || 1;
+      const debut = deJour(dates[0] || prevue.dateDebut);
+      if (prevue.frequence === "quotidien") regle = `FREQ=DAILY;INTERVAL=${n}`;
+      else if (prevue.frequence === "hebdomadaire") regle = `FREQ=WEEKLY;INTERVAL=${n}`;
+      else if (prevue.frequence === "mensuel") regle = `FREQ=MONTHLY;INTERVAL=${n};BYMONTHDAY=${jour}`;
+      else if (prevue.frequence === "trimestriel") regle = `FREQ=MONTHLY;INTERVAL=${n * 3};BYMONTHDAY=${jour}`;
+      else if (prevue.frequence === "annuel") regle = `FREQ=YEARLY;INTERVAL=${n};BYMONTH=${debut.getMonth() + 1};BYMONTHDAY=${jour}`;
+      if (prevue.dateFin) regle += `;UNTIL=${compact(prevue.dateFin)}T235959Z`;
+    }
+
+    dates.forEach((date) => {
+      const lendemain = new Date(deJour(date)); lendemain.setDate(lendemain.getDate() + 1);
+      const heures = Math.max(0, Number(prevue.rappelJours) * 24 - Number(prevue.rappelHeure));
+      const titre = `${prevue.libelle} — ${montant(prevue.montant)}${prevue.estime ? " (estimé)" : ""}`;
+      nombre++;
+      lignes.push("BEGIN:VEVENT",
+        `UID:monbudget-${prevue.id}-${compact(date)}@monbudget`,
+        `DTSTAMP:${tampon}`,
+        `DTSTART;VALUE=DATE:${compact(date)}`,
+        `DTEND;VALUE=DATE:${compact(jourISO(lendemain))}`,
+        `SUMMARY:${echapperICS("💸 " + titre)}`,
+        `DESCRIPTION:${echapperICS("Dépense prévue dans MonBudget.")}`,
+        "TRANSP:TRANSPARENT");
+      if (regle) lignes.push(`RRULE:${regle}`);
+      if (Number(prevue.rappelJours) > 0) {
+        lignes.push("BEGIN:VALARM", "ACTION:DISPLAY",
+          `DESCRIPTION:${echapperICS(prevue.libelle + " à payer dans " + prevue.rappelJours + " jour(s)")}`,
+          `TRIGGER:-PT${heures}H`, "END:VALARM");
+      }
+      lignes.push("BEGIN:VALARM", "ACTION:DISPLAY",
+        `DESCRIPTION:${echapperICS(prevue.libelle + " à payer aujourd'hui")}`,
+        `TRIGGER:PT${Number(prevue.rappelHeure) || 9}H`, "END:VALARM", "END:VEVENT");
+    });
+  });
+
+  lignes.push("END:VCALENDAR");
+  return { texte: lignes.join("\r\n"), nombre };
+}
+
+async function exporterICS() {
+  const { texte, nombre } = genererICS();
+  if (!nombre) {
+    informer("Aucune dépense prévue", "Programmez d'abord une dépense récurrente (onglet <b>Prévues</b>) : MonBudget créera ensuite les rappels correspondants.");
+    return;
+  }
+  await proposerFichier("rappels-monbudget.ics", texte, "text/calendar;charset=utf-8");
+  informer("Rappels créés",
+    `Le fichier <b>rappels-monbudget.ics</b> (${nombre} échéance${nombre > 1 ? "s" : ""}) vient d'être téléchargé.<br><br>
+     Pour recevoir les alertes :<br>
+     1. ouvrez l'app <b>Fichiers</b> → dossier <b>Téléchargements</b> ;<br>
+     2. touchez <b>rappels-monbudget.ics</b> ;<br>
+     3. choisissez <b>Tout ajouter</b> au calendrier.<br><br>
+     Le Calendrier de l'iPhone vous préviendra alors avant chaque échéance, même si MonBudget est fermée.<br><br>
+     <i>Si aucun fichier n'apparaît, ouvrez MonBudget depuis son icône sur l'écran d'accueil, puis recommencez.</i>`);
+}
+
+/* ======================= Données d'exemple / remise à zéro ======================= */
+
+function chargerExemple() {
+  const cat = (nom) => (categoriesTriees().find((c) => c.nom === nom) || {}).id || "";
+  const debut = jourISO(debutDuMois(new Date()));
+  const prevues = [
+    ["Loyer", 150000, "Logement", 5, "virement", 3, false],
+    ["Électricité", 25000, "Factures", 15, "mobile", 2, true],
+    ["Abonnement internet", 20000, "Factures", 20, "prelevement", 1, false],
+    ["Épargne automatique", 50000, "Épargne", 28, "virement", 2, false],
+  ];
+  prevues.forEach(([libelle, somme, nomCat, jour, moyen, rappel, estime]) => {
+    ETAT.prevues.push({
+      id: identifiant(), libelle, montant: somme, categorieId: cat(nomCat), moyen,
+      frequence: "mensuel", intervalle: 1, dateDebut: debut, dateFin: "", jourDuMois: jour,
+      rappelJours: rappel, rappelHeure: 9, estime, actif: true, notes: "", majAt: horodatage(),
+    });
+  });
+
+  const exemples = [["Marché", 12500, "Alimentation", 1, "especes"], ["Taxi", 2000, "Transport", 1, "especes"],
+    ["Pharmacie", 8400, "Santé", 3, "carte"], ["Restaurant", 15000, "Loisirs", 4, "carte"],
+    ["Crédit téléphone", 5000, "Factures", 6, "mobile"], ["Courses du mois", 45000, "Alimentation", 8, "carte"]];
+  exemples.forEach(([libelle, somme, nomCat, ilya, moyen]) => {
+    const d = new Date(); d.setDate(d.getDate() - ilya);
+    ETAT.depenses.push({ id: identifiant(), libelle, montant: somme, date: jourISO(d), categorieId: cat(nomCat),
+      moyen, notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
+  });
+
+  if (!ETAT.reglages.budget) { ETAT.reglages.budget = 350000; ETAT.reglages.majAt = horodatage(); }
+  enregistrer(); rendre();
+}
+
+function confirmerEffacement() {
+  informer("Tout effacer ?",
+    "Toutes vos dépenses, dépenses prévues et catégories personnalisées seront supprimées de cet iPhone. Cette action est définitive.",
+    `<button class="bouton danger" type="button" data-action="effacer-confirme" style="margin-top:14px">Oui, tout effacer</button>`);
+}
+
+function toutEffacer() {
+  ETAT = etatVierge();
+  fermerFeuille(); enregistrer(); rendre();
+}
+
+/* ======================= Enregistrement ======================= */
+
+let minuterieSync = null;
+
+function enregistrer() {
+  ETAT.majAt = horodatage();
+  try { localStorage.setItem(CLE_LOCALE, JSON.stringify(ETAT)); } catch (e) { /* stockage plein ou bloqué */ }
+  if (baseDistante) {
+    clearTimeout(minuterieSync);
+    minuterieSync = setTimeout(() => {
+      baseDistante.doc("sauvegarde/etat").set({ donnees: JSON.stringify(ETAT), majAt: ETAT.majAt }).catch(() => {});
+    }, 800);
+  }
+}
+
+function chargerLocal() {
+  try {
+    const brut = localStorage.getItem(CLE_LOCALE);
+    if (!brut) return null;
+    const lu = JSON.parse(brut);
+    return lu && Array.isArray(lu.depenses) ? lu : null;
+  } catch (e) { return null; }
+}
+
+function fusionnerListes(a = [], b = []) {
+  const parId = new Map();
+  [...a, ...b].forEach((objet) => {
+    if (!objet || !objet.id) return;
+    const existant = parId.get(objet.id);
+    if (!existant || String(objet.majAt || "") > String(existant.majAt || "")) parId.set(objet.id, objet);
+  });
+  return [...parId.values()];
+}
+
+function fusionner(a, b) {
+  if (!b) return a;
+  if (!a) return b;
+  return {
+    majAt: (a.majAt || "") > (b.majAt || "") ? a.majAt : b.majAt,
+    reglages: String((a.reglages || {}).majAt || "") >= String((b.reglages || {}).majAt || "") ? a.reglages : b.reglages,
+    categories: fusionnerListes(a.categories, b.categories),
+    depenses: fusionnerListes(a.depenses, b.depenses),
+    prevues: fusionnerListes(a.prevues, b.prevues),
+    sauts: fusionnerListes(a.sauts, b.sauts),
+  };
+}
+
+/* ======================= Écran d'accueil / hors ligne ======================= */
+
+function preparerInstallation() {
+  const metas = [["apple-mobile-web-app-capable", "yes"], ["mobile-web-app-capable", "yes"],
+    ["apple-mobile-web-app-status-bar-style", "default"], ["apple-mobile-web-app-title", "MonBudget"],
+    ["theme-color", "#0E6E5B"]];
+  metas.forEach(([nom, valeur]) => {
+    if (document.querySelector(`meta[name="${nom}"]`)) return;
+    const meta = document.createElement("meta");
+    meta.name = nom; meta.content = valeur;
+    document.head.appendChild(meta);
+  });
+  ["icone-180.png", "manifest.json"].forEach((fichier) => {
+    const lien = document.createElement("link");
+    if (fichier.endsWith(".png")) { lien.rel = "apple-touch-icon"; lien.sizes = "180x180"; }
+    else lien.rel = "manifest";
+    lien.href = fichier;
+    document.head.appendChild(lien);
+  });
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+
+/* ======================= Démarrage ======================= */
+
+async function demarrer() {
+  const local = chargerLocal();
+  if (local) ETAT = fusionner(etatSquelette(local), local);
+  rendre();
+  preparerInstallation();
+
+  if (typeof window.claude === "undefined" || !window.claude.use) return;
+
+  try {
+    capTelechargement = await window.claude.use("downloads");
+  } catch (e) { capTelechargement = null; }
+
+  try {
+    const base = await window.claude.use("db");
+    if (!base) return;
+    baseDistante = base;
+    const instantane = await base.doc("sauvegarde/etat").get();
+    if (instantane.exists) {
+      const distant = JSON.parse(instantane.data().donnees || "{}");
+      if (distant && Array.isArray(distant.depenses)) {
+        ETAT = fusionner(ETAT, distant);
+        try { localStorage.setItem(CLE_LOCALE, JSON.stringify(ETAT)); } catch (e) {}
+      }
+    }
+    etatSync = "distant";
+    enregistrer();
+    rendre();
+  } catch (e) { baseDistante = null; }
+}
+
+/** Complète une sauvegarde ancienne avec les champs manquants. */
+function etatSquelette(base) {
+  const vierge = etatVierge();
+  return {
+    majAt: base.majAt || vierge.majAt,
+    reglages: Object.assign({}, vierge.reglages, base.reglages || {}),
+    categories: (base.categories && base.categories.length) ? [] : vierge.categories,
+    depenses: [], prevues: [], sauts: [],
+  };
+}
+
+demarrer();
+</script>

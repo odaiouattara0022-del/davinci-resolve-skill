@@ -1,0 +1,16 @@
+{
+  "name": "MonBudget",
+  "short_name": "MonBudget",
+  "description": "Suivi et planification des dépenses du mois",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1F3F1",
+  "theme_color": "#0E6E5B",
+  "icons": [
+    { "src": "icone-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

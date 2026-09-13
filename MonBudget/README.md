@@ -1,6 +1,72 @@
-# MonBudget — application iPhone de suivi et de planification des dépenses
+# MonBudget — suivi et planification des dépenses
 
-Application iPhone **native (SwiftUI + SwiftData)**, entièrement en français, qui :
+Deux versions du même outil vivent dans ce dossier :
+
+| Dossier | Ce que c'est | Pour qui |
+| --- | --- | --- |
+| **`web/`** | Application web à ajouter à l'écran d'accueil de l'iPhone — **utilisable aujourd'hui, sans Mac, sans compte développeur** | La version en service |
+| `MonBudget/`, `MonBudgetTests/` | Application iPhone native (SwiftUI + SwiftData) | Le jour où un Mac ou un compte développeur Apple est disponible |
+
+---
+
+## Version web (celle qui tourne)
+
+Lien : <https://claude.ai/code/artifact/3f4e6267-9eb2-40f3-9a46-2a6bca3ac976>
+
+### L'installer sur l'iPhone
+
+1. Ouvrir le lien dans **Safari**.
+2. Toucher le bouton **Partager** (le carré avec une flèche vers le haut).
+3. Choisir **Sur l'écran d'accueil**, puis **Ajouter**.
+
+MonBudget s'ouvre alors en plein écran avec son icône, comme une application, et
+continue de fonctionner sans réseau une fois chargée.
+
+### Ce qu'elle fait
+
+- **Accueil** : dépensé ce mois, comparaison avec le mois dernier, jauge de budget,
+  reste à payer, échéances en retard, prochaines échéances et dernières dépenses.
+- **Dépenses** : historique mois par mois, regroupé par jour, avec recherche.
+- **Prévues** : les échéances du mois (payer, passer, rétablir) et la liste des
+  dépenses récurrentes — fréquence, jour du mois, date de fin, montant estimé.
+- **Analyse** : six derniers mois, répartition par catégorie, plafonds, top 5.
+- **Réglages** : devise, budget, catégories, export CSV, sauvegarde JSON, rappels.
+
+### Les rappels
+
+Une application web ne peut pas envoyer d'alerte toute seule sur iPhone. MonBudget
+fabrique donc un fichier `.ics` que le **Calendrier de l'iPhone** importe : les
+échéances deviennent des événements récurrents avec alarme (J-X puis le jour même),
+et les notifications arrivent même application fermée. Bouton
+**Réglages ▸ Créer mes rappels de calendrier**, à relancer après avoir modifié une
+dépense prévue.
+
+### Où vivent les données
+
+Sur l'iPhone (stockage local du navigateur), plus une sauvegarde en ligne quand
+l'app est ouverte depuis claude.ai. **Réglages ▸ Sauvegarder tout** produit un
+fichier JSON à conserver ; **Restaurer une sauvegarde** le relit et fusionne sans
+rien écraser.
+
+### Le code
+
+`web/index.html` contient toute l'application (aucune dépendance, hors les polices
+Google). `web/sw.js` assure le fonctionnement hors ligne, `web/manifest.json` et
+`web/icone-*.png` l'installation sur l'écran d'accueil (`web/icones.py` régénère les
+icônes).
+
+---
+
+## Version iPhone native (en attente d'un Mac)
+
+
+Le projet Swift complet est prêt dans `MonBudget/`. Il apporte ce que le web ne
+peut pas faire sur iPhone : de **vraies notifications locales**, sans passer par le
+Calendrier. Il lui manque seulement une machine pour être compilé — un Mac avec
+Xcode, ou un service de compilation à distance (Codemagic, GitHub Actions) doublé
+d'un compte développeur Apple à 99 $/an pour l'installer via TestFlight.
+
+Application native (SwiftUI + SwiftData), entièrement en français, qui :
 
 - enregistre et **classe** toutes vos dépenses (catégorie, moyen de paiement, notes) ;
 - **programme les dépenses de chaque mois** (loyer, factures, abonnements, scolarité, crédits…) avec toutes les fréquences utiles ;
