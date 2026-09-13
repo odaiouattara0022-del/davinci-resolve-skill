@@ -119,6 +119,12 @@ python scripts/resolve_bootstrap.py
 
 Si tout va bien, le script affiche `CONNECTED`, le nom du projet et de la timeline en cours.
 
+### Autre projet de ce dépôt
+
+`MonBudget/` — application iPhone (SwiftUI + SwiftData) de suivi et de planification
+des dépenses mensuelles : dépenses classées par catégorie, échéances récurrentes,
+rappels avant chaque paiement, budget et statistiques. Voir [MonBudget/README.md](MonBudget/README.md).
+
 ### Licence
 
 MIT — libre d'utilisation, de modification et de partage.
