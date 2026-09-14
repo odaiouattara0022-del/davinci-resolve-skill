@@ -24,13 +24,19 @@ continue de fonctionner sans réseau une fois chargée.
 
 ### Ce qu'elle fait
 
-- **Accueil** : dépensé ce mois, comparaison avec le mois dernier, jauge de budget,
-  reste à payer, échéances en retard, prochaines échéances et dernières dépenses.
-- **Dépenses** : historique mois par mois, regroupé par jour, avec recherche.
-- **Prévues** : les échéances du mois (payer, passer, rétablir) et la liste des
-  dépenses récurrentes — fréquence, jour du mois, date de fin, montant estimé.
-- **Analyse** : six derniers mois, répartition par catégorie, plafonds, top 5.
-- **Réglages** : devise, budget, catégories, export CSV, sauvegarde JSON, rappels.
+- **Accueil** : le **reste à vivre** du mois — revenus reçus moins dépenses moins
+  échéances encore à payer — avec le détail ligne par ligne et la projection une
+  fois les rentrées encaissées ; puis la jauge de budget, les retards, les
+  prochaines échéances et les dernières dépenses.
+- **Dépenses / Revenus** : deux onglets sur le même écran, historique mois par mois
+  regroupé par jour, avec recherche.
+- **Prévues** : ce qui doit sortir *et* ce qui doit rentrer (salaire, loyer perçu…),
+  échéances du mois à régler, encaisser, passer ou rétablir, et la liste de tout ce
+  qui revient chaque mois — fréquence, jour du mois, date de fin, montant estimé.
+- **Analyse** : revenus, dépenses et solde du mois, part de ce que vous gardez,
+  six derniers mois (dépenses et revenus), répartition par catégorie, plafonds, top 5.
+- **Réglages** : devise, budget, catégories, export CSV (dépenses et revenus),
+  sauvegarde JSON, rappels de calendrier.
 
 ### Les rappels
 

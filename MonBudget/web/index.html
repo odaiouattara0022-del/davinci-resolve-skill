@@ -130,6 +130,17 @@
   .jauge.rouge span { background: var(--critique); }
   .mini { font-size: 12.5px; color: var(--encre-2); }
 
+  .decompte { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
+  .decompte div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 13.5px; color: var(--encre-2); }
+  .decompte b { color: var(--encre); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .segments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; background: var(--surface); border: 1px solid var(--ligne); border-radius: 12px; padding: 4px; margin-bottom: 12px; }
+  .segments button { border: 0; background: none; border-radius: 9px; padding: 8px 4px; font-size: 14px; font-weight: 600; color: var(--encre-2); }
+  .segments button[aria-pressed="true"] { background: var(--accent-doux); color: var(--accent); }
+
+  .legende { font-size: 11px; color: var(--encre-2); display: inline-flex; align-items: center; gap: 4px; }
+  .legende i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-left: 6px; }
+
   .duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
   .tuile { background: var(--surface); border: 1px solid var(--ligne); border-radius: var(--rayon); padding: 12px; }
   .tuile .etiq { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--encre-2); font-weight: 600; }
@@ -165,8 +176,11 @@
   /* ---------- Graphiques ---------- */
   .barres { display: flex; align-items: flex-end; gap: 7px; height: 132px; padding-top: 18px; }
   .barres .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 5px; }
-  .barres .tige { width: 100%; border-radius: 6px 6px 3px 3px; background: var(--accent-doux); min-height: 3px; }
+  .barres .paire { display: flex; align-items: flex-end; gap: 2px; width: 100%; height: 100%; }
+  .barres .tige { flex: 1; border-radius: 6px 6px 3px 3px; background: var(--accent-doux); min-height: 3px; }
+  .barres .tige.revenu { background: var(--positif); opacity: .45; }
   .barres .col.actif .tige { background: var(--accent); }
+  .barres .col.actif .tige.revenu { background: var(--positif); opacity: .55; }
   .barres .val { font-size: 10.5px; color: var(--encre-2); font-variant-numeric: tabular-nums; }
   .barres-pied { display: flex; gap: 7px; margin-top: 6px; }
   .barres-pied span { flex: 1; text-align: center; font-size: 11px; color: var(--encre-2); }
@@ -314,7 +328,7 @@ const PALETTE = ["#0E6E5B", "#4C8B3B", "#B9761A", "#5B5FB3", "#B23A2F", "#2B7A9B
 const EMOJIS = ["🏠","🛒","🚌","🧾","💊","🎓","👨‍👩‍👧","🎬","🐖","💸","☕️","👕","⛽️","📱","🎁","✈️","🏥","🔧","🐾","💼","💇","🍽","📚","🎧"];
 
 let ETAT = etatVierge();
-let UI = { onglet: "accueil", mois: debutDuMois(new Date()), recherche: "" };
+let UI = { onglet: "accueil", sousOnglet: "depenses", mois: debutDuMois(new Date()), recherche: "" };
 let baseDistante = null;   // capacité db, si disponible
 let capTelechargement = null;
 let etatSync = "local";
@@ -328,6 +342,7 @@ function etatVierge() {
       plafond: 0, ordre: i, majAt: horodatage(),
     })),
     depenses: [],
+    revenus: [],
     prevues: [],
     sauts: [],
   };
@@ -450,12 +465,20 @@ function depensesDuMois(mois) {
   return ETAT.depenses.filter((d) => vif(d) && d.date.startsWith(cle));
 }
 
+function revenusDuMois(mois) {
+  const cle = cleMois(mois);
+  return (ETAT.revenus || []).filter((r) => vif(r) && r.date.startsWith(cle));
+}
+
+/** Une dépense prévue peut aussi être une rentrée d'argent (salaire, loyer perçu…). */
+function estRevenu(prevue) { return prevue && prevue.sens === "revenu"; }
+
 function total(liste) { return liste.reduce((somme, d) => somme + (Number(d.montant) || 0), 0); }
 
 function echeancesEntre(debutISO, finISO) {
-  const payees = new Map();
-  ETAT.depenses.filter(vif).forEach((d) => {
-    if (d.origineId && d.echeance) payees.set(d.origineId + "|" + d.echeance, d);
+  const reglees = new Map();
+  [...ETAT.depenses, ...(ETAT.revenus || [])].filter(vif).forEach((mouvement) => {
+    if (mouvement.origineId && mouvement.echeance) reglees.set(mouvement.origineId + "|" + mouvement.echeance, mouvement);
   });
   const ignorees = new Set(ETAT.sauts.filter(vif).map((s) => s.prevueId + "|" + s.date));
   const jour = aujourdHui();
@@ -464,17 +487,34 @@ function echeancesEntre(debutISO, finISO) {
   ETAT.prevues.filter((p) => vif(p) && p.actif !== false).forEach((prevue) => {
     occurrencesEntre(prevue, debutISO, finISO).forEach((date) => {
       const cle = prevue.id + "|" + date;
-      const depense = payees.get(cle);
+      const mouvement = reglees.get(cle);
       let statut = "avenir";
-      if (depense) statut = "paye";
+      if (mouvement) statut = "paye";
       else if (ignorees.has(cle)) statut = "ignore";
       else if (date < jour) statut = "retard";
       else if (date === jour) statut = "aujourdhui";
-      resultats.push({ prevue, date, statut, depense, montant: depense ? depense.montant : prevue.montant });
+      resultats.push({ prevue, date, statut, depense: mouvement, montant: mouvement ? mouvement.montant : prevue.montant, revenu: estRevenu(prevue) });
     });
   });
 
   return resultats.sort((a, b) => (a.date === b.date ? a.prevue.libelle.localeCompare(b.prevue.libelle) : a.date.localeCompare(b.date)));
+}
+
+/** Somme des échéances non encore réglées, pour un sens donné. */
+function resteSur(echeances, revenu) {
+  return echeances.filter((e) => aRegler(e) && !!e.revenu === revenu).reduce((s, e) => s + (Number(e.montant) || 0), 0);
+}
+
+/** Le chiffre qui compte : ce qui est entré, moins ce qui est sorti et doit encore sortir. */
+function resteAVivre(mois) {
+  const echeances = echeancesDuMois(mois);
+  return {
+    revenus: total(revenusDuMois(mois)),
+    depenses: total(depensesDuMois(mois)),
+    resteAPayer: resteSur(echeances, false),
+    aEncaisser: resteSur(echeances, true),
+    get solde() { return this.revenus - this.depenses - this.resteAPayer; },
+  };
 }
 
 function aRegler(e) { return e.statut === "retard" || e.statut === "aujourdhui" || e.statut === "avenir"; }
@@ -555,26 +595,45 @@ function ligneDepense(d) {
   </button>`;
 }
 
+function ligneRevenu(r) {
+  return `<button class="ligne" type="button" data-action="modifier-revenu:${r.id}">
+    <div class="pastille" style="background:var(--accent-doux);color:var(--positif)">💰</div>
+    <div class="corps">
+      <div class="titre">${esc(r.libelle)}</div>
+      <div class="detail">${fmtJourCourt.format(deJour(r.date))}${r.origineId ? " · prévu" : ""}</div>
+    </div>
+    <div class="montant" style="color:var(--positif)">+ ${montant(r.montant)}</div>
+  </button>`;
+}
+
 function ligneEcheance(e, avecActions) {
+  const revenu = !!e.revenu;
   const cat = categorie(e.prevue.categorieId);
-  const etiquettes = { paye: ["paye", "Payé"], retard: ["retard", "En retard"], aujourdhui: ["aujourdhui", "Aujourd'hui"], avenir: ["avenir", "À venir"], ignore: ["ignore", "Ignoré"] }[e.statut];
+  const etiquettes = revenu
+    ? { paye: ["paye", "Reçu"], retard: ["retard", "En attente"], aujourdhui: ["aujourdhui", "Aujourd'hui"], avenir: ["avenir", "À recevoir"], ignore: ["ignore", "Ignoré"] }[e.statut]
+    : { paye: ["paye", "Payé"], retard: ["retard", "En retard"], aujourdhui: ["aujourdhui", "Aujourd'hui"], avenir: ["avenir", "À venir"], ignore: ["ignore", "Ignoré"] }[e.statut];
+
   const actions = !avecActions ? "" : (aRegler(e)
     ? `<div class="actions-ligne">
-         <button class="bpetit vert" type="button" data-action="payer:${e.prevue.id}:${e.date}">Payé</button>
+         <button class="bpetit vert" type="button" data-action="payer:${e.prevue.id}:${e.date}">${revenu ? "Reçu" : "Payé"}</button>
          <button class="bpetit" type="button" data-action="ignorer:${e.prevue.id}:${e.date}">Passer</button>
        </div>`
     : (e.statut === "ignore"
         ? `<div class="actions-ligne"><button class="bpetit" type="button" data-action="retablir:${e.prevue.id}:${e.date}">Rétablir</button></div>`
         : `<div class="actions-ligne"><button class="bpetit" type="button" data-action="annuler-paiement:${e.depense.id}">Annuler</button></div>`));
 
+  const vignette = revenu
+    ? `<div class="pastille" style="background:var(--accent-doux);color:var(--positif)">💰</div>`
+    : pastille(cat, "🗓");
+
   return `<div class="ligne">
-    ${pastille(cat, "🗓")}
+    ${vignette}
     <div class="corps">
       <div class="titre">${esc(e.prevue.libelle)}</div>
       <div class="detail">${fmtJourCourt.format(deJour(e.date))} · ${libelleRelatif(e.date)}</div>
     </div>
     <div class="fin">
-      <div class="montant">${montant(e.montant)}</div>
+      <div class="montant"${revenu ? ' style="color:var(--positif)"' : ""}>${revenu ? "+ " : ""}${montant(e.montant)}</div>
       <span class="puce ${etiquettes[0]}">${etiquettes[1]}</span>
     </div>
   </div>${actions ? `<div style="display:flex;justify-content:flex-end;margin:-2px 0 6px">${actions}</div>` : ""}`;
@@ -585,31 +644,53 @@ function vueAccueil() {
   titreVue.textContent = "Accueil";
   sousTitre.textContent = fmtMois.format(mois).replace(/^./, (c) => c.toUpperCase());
 
+  const bilan = resteAVivre(mois);
   const duMois = depensesDuMois(mois);
-  const depense = total(duMois);
   const ech = echeancesDuMois(mois);
-  const restant = ech.filter(aRegler);
-  const resteAPayer = restant.reduce((s, e) => s + (Number(e.montant) || 0), 0);
+  const restant = ech.filter((e) => aRegler(e) && !e.revenu);
   const budget = Number(ETAT.reglages.budget) || 0;
-  const previsionnel = depense + resteAPayer;
+  const aDesRevenus = bilan.revenus > 0 || bilan.aEncaisser > 0;
 
   const moisPrecedent = total(depensesDuMois(decalerMois(mois, -1)));
-  const ecart = moisPrecedent > 0 ? Math.round(((depense - moisPrecedent) / moisPrecedent) * 100) : null;
+  const ecart = moisPrecedent > 0 ? Math.round(((bilan.depenses - moisPrecedent) / moisPrecedent) * 100) : null;
+
+  // Carte principale : le reste à vivre dès qu'un revenu est connu, sinon le total dépensé.
+  const carte = aDesRevenus
+    ? `<section class="resume">
+        <div class="etiq">Reste à vivre</div>
+        <div class="gros chiffre" style="color:${bilan.solde < 0 ? "var(--critique)" : "var(--positif)"}">${montant(bilan.solde)}</div>
+        <div class="mini">Ce qu'il vous reste après vos dépenses et vos échéances du mois.</div>
+        <div class="decompte">
+          <div><span>Revenus reçus</span><b style="color:var(--positif)">+ ${montant(bilan.revenus)}</b></div>
+          <div><span>Dépensé</span><b>− ${montant(bilan.depenses)}</b></div>
+          <div><span>Reste à payer</span><b>− ${montant(bilan.resteAPayer)}</b></div>
+          ${bilan.aEncaisser > 0 ? `<div><span>À encaisser</span><b style="color:var(--positif)">+ ${montant(bilan.aEncaisser)}</b></div>` : ""}
+        </div>
+        ${bilan.aEncaisser > 0 ? `<div class="mini" style="margin-top:8px">Une fois ces rentrées encaissées : <b>${montant(bilan.solde + bilan.aEncaisser)}</b>.</div>` : ""}
+      </section>`
+    : `<section class="resume">
+        <div class="etiq">Dépensé ce mois</div>
+        <div class="gros chiffre">${montant(bilan.depenses)}</div>
+        ${ecart === null ? "" : `<div class="mini">${ecart >= 0 ? "+" : ""}${ecart} % par rapport au mois dernier</div>`}
+        <div class="mini" style="margin-top:10px">Ajoutez votre salaire ou vos rentrées d'argent pour voir ce qu'il vous reste chaque mois.</div>
+        <button class="bouton fant" type="button" data-action="nouveau-revenu" style="margin-top:10px">Ajouter un revenu</button>
+      </section>`;
 
   let blocBudget = "";
   if (budget > 0) {
-    const part = Math.min(1, depense / budget);
-    const classe = depense >= budget ? "rouge" : depense / budget >= (ETAT.reglages.seuil || 0.8) ? "chaud" : "";
-    const reste = budget - depense;
-    blocBudget = `
+    const part = Math.min(1, bilan.depenses / budget);
+    const classe = bilan.depenses >= budget ? "rouge" : bilan.depenses / budget >= (ETAT.reglages.seuil || 0.8) ? "chaud" : "";
+    const reste = budget - bilan.depenses;
+    const previsionnel = bilan.depenses + bilan.resteAPayer;
+    blocBudget = `<section class="bloc">
+      <div class="bloc-tete"><h2>Budget du mois</h2><span class="mini">${montant(budget)}</span></div>
       <div class="jauge ${classe}"><span style="width:${(part * 100).toFixed(1)}%"></span></div>
-      <div class="ligne-sec">
-        <span>${Math.round((depense / budget) * 100)} % du budget</span>
+      <div class="ligne-sec" style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--encre-2);margin-top:10px">
+        <span>${Math.round((bilan.depenses / budget) * 100)} % utilisé</span>
         <span>${reste >= 0 ? `reste <b>${montant(reste)}</b>` : `<b style="color:var(--critique)">dépassé de ${montant(-reste)}</b>`}</span>
       </div>
-      ${resteAPayer > 0 ? `<div class="mini" style="margin-top:6px">Fin de mois estimée : <b style="color:${previsionnel > budget ? "var(--critique)" : "var(--encre)"}">${montant(previsionnel)}</b> en comptant les échéances à venir.</div>` : ""}`;
-  } else {
-    blocBudget = `<div class="mini" style="margin-top:10px">Aucun budget défini. <button class="lien" type="button" data-action="onglet:reglages">En définir un</button> pour être prévenu avant de le dépasser.</div>`;
+      ${bilan.resteAPayer > 0 ? `<div class="mini" style="margin-top:6px">Fin de mois estimée : <b style="color:${previsionnel > budget ? "var(--critique)" : "var(--encre)"}">${montant(previsionnel)}</b> avec les échéances à venir.</div>` : ""}
+    </section>`;
   }
 
   const retards = ech.filter((e) => e.statut === "retard");
@@ -617,25 +698,22 @@ function vueAccueil() {
   const dernieres = duMois.slice().sort((a, b) => b.date.localeCompare(a.date) || String(b.creeLe || "").localeCompare(String(a.creeLe || ""))).slice(0, 5);
 
   vue.innerHTML = `
-    <section class="resume">
-      <div class="etiq">Dépensé ce mois</div>
-      <div class="gros chiffre">${montant(depense)}</div>
-      ${ecart === null ? "" : `<div class="mini">${ecart >= 0 ? "+" : ""}${ecart} % par rapport au mois dernier</div>`}
-      ${blocBudget}
-    </section>
+    ${carte}
 
     <div class="duo">
       <div class="tuile">
-        <div class="etiq">Reste à payer</div>
-        <div class="val chiffre">${montant(resteAPayer)}</div>
-        <div class="det">${restant.length} échéance${restant.length > 1 ? "s" : ""} ce mois</div>
+        <div class="etiq">Dépensé ce mois</div>
+        <div class="val chiffre">${montant(bilan.depenses)}</div>
+        <div class="det">${ecart === null ? duMois.length + " dépense(s)" : `${ecart >= 0 ? "+" : ""}${ecart} % vs mois dernier`}</div>
       </div>
       <div class="tuile">
-        <div class="etiq">Déjà réglé</div>
-        <div class="val chiffre">${montant(ech.filter((e) => e.statut === "paye").reduce((s, e) => s + Number(e.montant || 0), 0))}</div>
-        <div class="det">sur vos dépenses prévues</div>
+        <div class="etiq">Reste à payer</div>
+        <div class="val chiffre" style="color:var(--attention)">${montant(bilan.resteAPayer)}</div>
+        <div class="det">${restant.length} échéance${restant.length > 1 ? "s" : ""} ce mois</div>
       </div>
     </div>
+
+    ${blocBudget}
 
     ${retards.length ? `<section class="bloc" style="border-color:color-mix(in srgb, var(--critique) 40%, var(--ligne))">
       <h2 style="color:var(--critique)">En retard</h2>
@@ -646,7 +724,7 @@ function vueAccueil() {
       <div class="bloc-tete"><h2>Prochaines échéances</h2><button class="lien" type="button" data-action="onglet:prevues">Tout voir</button></div>
       ${prochaines.length
         ? `<div class="liste">${prochaines.map((e) => ligneEcheance(e, true)).join("")}</div>`
-        : `<div class="vide"><b>Rien de prévu</b>Ajoutez vos dépenses qui reviennent chaque mois (loyer, factures, abonnements) pour ne plus jamais les oublier.<div style="margin-top:12px"><button class="bouton fant" type="button" data-action="nouvelle-prevue">Programmer une dépense</button></div></div>`}
+        : `<div class="vide"><b>Rien de prévu</b>Ajoutez vos dépenses qui reviennent chaque mois (loyer, factures, abonnements) et votre salaire pour ne plus rien oublier.<div style="margin-top:12px"><button class="bouton fant" type="button" data-action="nouvelle-prevue">Programmer une dépense</button></div></div>`}
     </section>
 
     <section class="bloc">
@@ -660,67 +738,91 @@ function vueAccueil() {
 }
 
 function vueDepenses() {
-  titreVue.textContent = "Dépenses";
-  const liste = depensesDuMois(UI.mois)
-    .filter((d) => {
-      if (!UI.recherche) return true;
-      const t = UI.recherche.toLowerCase();
-      const cat = categorie(d.categorieId);
-      return d.libelle.toLowerCase().includes(t) || (d.notes || "").toLowerCase().includes(t) || (cat && cat.nom.toLowerCase().includes(t));
-    })
+  const surRevenus = UI.sousOnglet === "revenus";
+  titreVue.textContent = surRevenus ? "Revenus" : "Dépenses";
+
+  const filtrer = (liste) => liste.filter((m) => {
+    if (!UI.recherche) return true;
+    const t = UI.recherche.toLowerCase();
+    const cat = categorie(m.categorieId);
+    return m.libelle.toLowerCase().includes(t) || (m.notes || "").toLowerCase().includes(t) || (cat && cat.nom.toLowerCase().includes(t));
+  });
+
+  const liste = filtrer(surRevenus ? revenusDuMois(UI.mois) : depensesDuMois(UI.mois))
     .sort((a, b) => b.date.localeCompare(a.date) || String(b.creeLe || "").localeCompare(String(a.creeLe || "")));
 
-  sousTitre.textContent = `${liste.length} dépense${liste.length > 1 ? "s" : ""} · ${montant(total(liste))}`;
+  const somme = total(liste);
+  sousTitre.textContent = `${liste.length} ${surRevenus ? "revenu" : "dépense"}${liste.length > 1 ? "s" : ""} · ${montant(somme)}`;
 
   const parJour = new Map();
-  liste.forEach((d) => { if (!parJour.has(d.date)) parJour.set(d.date, []); parJour.get(d.date).push(d); });
+  liste.forEach((m) => { if (!parJour.has(m.date)) parJour.set(m.date, []); parJour.get(m.date).push(m); });
 
   const groupes = [...parJour.entries()].map(([jour, items]) => `
-    <div class="jour-tete"><b>${jour === aujourdHui() ? "Aujourd'hui" : fmtJourLong.format(deJour(jour))}</b><span>${montant(total(items))}</span></div>
-    <section class="bloc" style="margin-bottom:8px"><div class="liste">${items.map(ligneDepense).join("")}</div></section>`).join("");
+    <div class="jour-tete"><b>${jour === aujourdHui() ? "Aujourd'hui" : fmtJourLong.format(deJour(jour))}</b><span>${surRevenus ? "+ " : ""}${montant(total(items))}</span></div>
+    <section class="bloc" style="margin-bottom:8px"><div class="liste">${items.map(surRevenus ? ligneRevenu : ligneDepense).join("")}</div></section>`).join("");
 
   vue.innerHTML = `
-    <label class="champ"><input type="text" id="recherche" placeholder="Rechercher une dépense" value="${esc(UI.recherche)}" autocomplete="off"></label>
-    ${liste.length ? groupes : `<section class="bloc"><div class="vide"><b>Aucune dépense</b>${UI.recherche ? "Aucun résultat pour cette recherche." : "Rien n'a été noté pour ce mois."}</div></section>`}`;
+    <div class="segments">
+      <button type="button" data-action="sous-onglet:depenses" aria-pressed="${!surRevenus}">Dépenses</button>
+      <button type="button" data-action="sous-onglet:revenus" aria-pressed="${surRevenus}">Revenus</button>
+    </div>
+    <label class="champ"><input type="text" id="recherche" placeholder="Rechercher" value="${esc(UI.recherche)}" autocomplete="off"></label>
+    ${liste.length ? groupes : `<section class="bloc"><div class="vide"><b>${surRevenus ? "Aucun revenu" : "Aucune dépense"}</b>${UI.recherche ? "Aucun résultat pour cette recherche." : `Rien n'a été noté pour ce mois. Touchez + pour ${surRevenus ? "ajouter un revenu" : "noter une dépense"}.`}</div></section>`}`;
 
   const champ = document.getElementById("recherche");
-  champ.addEventListener("input", (e) => { UI.recherche = e.target.value; const pos = e.target.selectionStart; rendre(); const n = document.getElementById("recherche"); n.focus(); n.setSelectionRange(pos, pos); });
+  champ.addEventListener("input", (e) => {
+    UI.recherche = e.target.value;
+    const position = e.target.selectionStart;
+    rendre();
+    const nouveau = document.getElementById("recherche");
+    nouveau.focus();
+    nouveau.setSelectionRange(position, position);
+  });
 }
 
 function vuePrevues() {
-  titreVue.textContent = "Dépenses prévues";
+  titreVue.textContent = "Prévu ce mois";
   const ech = echeancesDuMois(UI.mois);
-  const prevues = ETAT.prevues.filter(vif).sort((a, b) => a.libelle.localeCompare(b.libelle));
-  const aPayer = ech.filter(aRegler).reduce((s, e) => s + Number(e.montant || 0), 0);
-  const prevu = ech.filter((e) => e.statut !== "ignore").reduce((s, e) => s + Number(e.montant || 0), 0);
-  sousTitre.textContent = `${ech.length} échéance${ech.length > 1 ? "s" : ""} · ${montant(prevu)}`;
+  const depensesPrevues = ech.filter((e) => !e.revenu);
+  const revenusPrevus = ech.filter((e) => e.revenu);
+  const prevues = ETAT.prevues.filter(vif).sort((a, b) => (estRevenu(a) === estRevenu(b) ? a.libelle.localeCompare(b.libelle) : estRevenu(a) ? -1 : 1));
+
+  const aPayer = resteSur(ech, false);
+  const aEncaisser = resteSur(ech, true);
+  const totalPrevu = depensesPrevues.filter((e) => e.statut !== "ignore").reduce((s, e) => s + Number(e.montant || 0), 0);
+  const totalRevenus = revenusPrevus.filter((e) => e.statut !== "ignore").reduce((s, e) => s + Number(e.montant || 0), 0);
+  sousTitre.textContent = `${ech.length} échéance${ech.length > 1 ? "s" : ""}`;
+
+  const bloc = (titre, elements, vide) => `<section class="bloc">
+      <h2>${titre}</h2>
+      ${elements.length ? `<div class="liste">${elements.map((e) => ligneEcheance(e, true)).join("")}</div>` : `<div class="vide">${vide}</div>`}
+    </section>`;
 
   vue.innerHTML = `
     <div class="duo">
-      <div class="tuile"><div class="etiq">Total prévu</div><div class="val chiffre">${montant(prevu)}</div><div class="det">ce mois-ci</div></div>
-      <div class="tuile"><div class="etiq">Reste à payer</div><div class="val chiffre" style="color:var(--attention)">${montant(aPayer)}</div><div class="det">${ech.filter(aRegler).length} échéance(s)</div></div>
+      <div class="tuile"><div class="etiq">À payer</div><div class="val chiffre" style="color:var(--attention)">${montant(aPayer)}</div><div class="det">sur ${montant(totalPrevu)} prévus</div></div>
+      <div class="tuile"><div class="etiq">À encaisser</div><div class="val chiffre" style="color:var(--positif)">${montant(aEncaisser)}</div><div class="det">sur ${montant(totalRevenus)} attendus</div></div>
     </div>
 
-    <section class="bloc">
-      <h2>Échéances du mois</h2>
-      ${ech.length ? `<div class="liste">${ech.map((e) => ligneEcheance(e, true)).join("")}</div>`
-        : `<div class="vide"><b>Aucune échéance</b>Aucune dépense prévue ne tombe sur ce mois.</div>`}
-    </section>
+    ${revenusPrevus.length ? bloc("Rentrées d'argent", revenusPrevus, "") : ""}
+    ${bloc("Dépenses à payer", depensesPrevues, "<b>Aucune échéance</b>Aucune dépense prévue ne tombe sur ce mois.")}
 
     <section class="bloc">
-      <div class="bloc-tete"><h2>Mes dépenses récurrentes</h2><button class="lien" type="button" data-action="nouvelle-prevue">Ajouter</button></div>
+      <div class="bloc-tete"><h2>Ce qui revient chaque mois</h2><button class="lien" type="button" data-action="nouvelle-prevue">Ajouter</button></div>
       ${prevues.length ? `<div class="liste">${prevues.map((p) => {
+        const revenu = estRevenu(p);
         const cat = categorie(p.categorieId);
         const suivante = p.actif === false ? null : prochainesOccurrences(p, aujourdHui(), 1)[0];
+        const vignette = revenu ? `<div class="pastille" style="background:var(--accent-doux);color:var(--positif)">💰</div>` : pastille(cat, "🔁");
         return `<button class="ligne" type="button" data-action="modifier-prevue:${p.id}">
-          ${pastille(cat, "🔁")}
+          ${vignette}
           <div class="corps">
             <div class="titre" style="${p.actif === false ? "color:var(--encre-3)" : ""}">${esc(p.libelle)}</div>
             <div class="detail">${esc(libelleFrequence(p))}${suivante ? ` · le ${fmtJourCourt.format(deJour(suivante))}` : p.actif === false ? " · suspendue" : " · terminée"}</div>
           </div>
-          <div class="fin"><div class="montant">${montant(p.montant)}</div>${p.estime ? '<span class="puce avenir">estimé</span>' : ""}</div>
+          <div class="fin"><div class="montant"${revenu ? ' style="color:var(--positif)"' : ""}>${revenu ? "+ " : ""}${montant(p.montant)}</div>${p.estime ? '<span class="puce avenir">estimé</span>' : ""}</div>
         </button>`;
-      }).join("")}</div>` : `<div class="vide"><b>Rien de programmé</b>Le loyer, l'électricité, l'école, un abonnement… notez-les une fois, l'app s'occupe du reste.</div>`}
+      }).join("")}</div>` : `<div class="vide"><b>Rien de programmé</b>Le salaire, le loyer, l'électricité, l'école, un abonnement… notez-les une fois, l'app s'occupe du reste.</div>`}
     </section>`;
 }
 
@@ -728,32 +830,47 @@ function vueStats() {
   titreVue.textContent = "Analyse";
   const duMois = depensesDuMois(UI.mois);
   const somme = total(duMois);
-  sousTitre.textContent = `${montant(somme)} dépensés`;
+  const revenus = total(revenusDuMois(UI.mois));
+  sousTitre.textContent = revenus > 0 ? `${montant(revenus - somme)} mis de côté` : `${montant(somme)} dépensés`;
 
   const historique = [];
   for (let i = 5; i >= 0; i--) {
     const m = decalerMois(UI.mois, -i);
-    historique.push({ mois: m, somme: total(depensesDuMois(m)) });
+    historique.push({ mois: m, depenses: total(depensesDuMois(m)), revenus: total(revenusDuMois(m)) });
   }
-  const maxi = Math.max(...historique.map((h) => h.somme), 1);
-  const renseignes = historique.filter((h) => h.somme > 0);
-  const moyenne = renseignes.length ? renseignes.reduce((s, h) => s + h.somme, 0) / renseignes.length : 0;
+  const maxi = Math.max(...historique.map((h) => Math.max(h.depenses, h.revenus)), 1);
+  const renseignes = historique.filter((h) => h.depenses > 0);
+  const moyenne = renseignes.length ? renseignes.reduce((s, h) => s + h.depenses, 0) / renseignes.length : 0;
+  const avecRevenus = historique.some((h) => h.revenus > 0);
 
   const parCat = totauxParCategorie(duMois);
   const plusGrosses = duMois.slice().sort((a, b) => b.montant - a.montant).slice(0, 5);
 
   vue.innerHTML = `
+    ${revenus > 0 ? `<section class="bloc">
+      <h2>Le mois en un coup d'œil</h2>
+      <div class="decompte">
+        <div><span>Revenus</span><b style="color:var(--positif)">+ ${montant(revenus)}</b></div>
+        <div><span>Dépenses</span><b>− ${montant(somme)}</b></div>
+        <div style="border-top:1px solid var(--ligne);padding-top:7px"><span>Solde</span><b style="color:${revenus - somme < 0 ? "var(--critique)" : "var(--positif)"}">${montant(revenus - somme)}</b></div>
+      </div>
+      ${revenus > 0 ? `<div class="mini" style="margin-top:8px">Vous gardez ${Math.round(((revenus - somme) / revenus) * 100)} % de ce que vous gagnez.</div>` : ""}
+    </section>` : ""}
+
     <section class="bloc">
-      <h2>Six derniers mois</h2>
+      <div class="bloc-tete"><h2>Six derniers mois</h2>${avecRevenus ? `<span class="legende"><i style="background:var(--accent)"></i>dépenses <i style="background:var(--positif);opacity:.45"></i>revenus</span>` : ""}</div>
       <div class="barres">
         ${historique.map((h) => `
           <div class="col ${cleMois(h.mois) === cleMois(UI.mois) ? "actif" : ""}">
-            <div class="val">${h.somme ? montantCourt(h.somme) : ""}</div>
-            <div class="tige" style="height:${Math.max(3, (h.somme / maxi) * 100)}%"></div>
+            <div class="val">${h.depenses ? montantCourt(h.depenses) : ""}</div>
+            <div class="paire">
+              <div class="tige" style="height:${Math.max(3, (h.depenses / maxi) * 100)}%"></div>
+              ${avecRevenus ? `<div class="tige revenu" style="height:${Math.max(3, (h.revenus / maxi) * 100)}%"></div>` : ""}
+            </div>
           </div>`).join("")}
       </div>
       <div class="barres-pied">${historique.map((h) => `<span>${fmtMoisCourt.format(h.mois).replace(".", "")}</span>`).join("")}</div>
-      <div class="mini" style="margin-top:10px">Moyenne des mois utilisés : <b>${montant(moyenne)}</b></div>
+      <div class="mini" style="margin-top:10px">Dépense moyenne des mois utilisés : <b>${montant(moyenne)}</b></div>
     </section>
 
     <section class="bloc">
@@ -815,7 +932,7 @@ function vueReglages() {
 
     <section class="bloc">
       <h2>Données</h2>
-      <button class="bouton fant" type="button" data-action="exporter-csv">Exporter mes dépenses (CSV)</button>
+      <button class="bouton fant" type="button" data-action="exporter-csv">Exporter mes mouvements (CSV)</button>
       <button class="bouton fant" type="button" data-action="exporter-json">Sauvegarder tout (fichier JSON)</button>
       <button class="bouton fant" type="button" data-action="importer-json">Restaurer une sauvegarde</button>
       <button class="bouton fant" type="button" data-action="exemple">Charger des données d'exemple</button>
@@ -914,15 +1031,22 @@ function formDepense(id) {
 
 function formPrevue(id) {
   const p = id ? ETAT.prevues.find((x) => x.id === id) : null;
+  const revenu = p ? estRevenu(p) : false;
   const jour = p ? (p.jourDuMois || deJour(p.dateDebut).getDate()) : new Date().getDate();
   const corps = `
+    <div class="champ"><span>Type</span>
+      <div class="segments" id="choix-sens" style="margin-bottom:0">
+        <button type="button" data-sens="depense" aria-pressed="${!revenu}">Dépense</button>
+        <button type="button" data-sens="revenu" aria-pressed="${revenu}">Revenu</button>
+      </div>
+      <input type="hidden" name="sens" id="sens-choisi" value="${revenu ? "revenu" : "depense"}"></div>
     <label class="champ"><span>Montant (${esc(ETAT.reglages.devise)})</span>
       <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${p ? p.montant : ""}" placeholder="0"></label>
-    <label class="champ"><span>Quelle dépense ?</span>
-      <input type="text" name="libelle" required maxlength="60" value="${p ? esc(p.libelle) : ""}" placeholder="Loyer, électricité, école…"></label>
+    <label class="champ"><span id="lab-libelle">${revenu ? "Quelle rentrée d'argent ?" : "Quelle dépense ?"}</span>
+      <input type="text" name="libelle" id="champ-libelle" required maxlength="60" value="${p ? esc(p.libelle) : ""}" placeholder="${revenu ? "Salaire, loyer perçu, pension…" : "Loyer, électricité, école…"}"></label>
     <div class="rangee">
       <label class="champ"><span>Catégorie</span><select name="categorieId">${optionsCategories(p ? p.categorieId : "")}</select></label>
-      <label class="champ"><span>Payé par</span><select name="moyen">${optionsMoyens(p ? p.moyen : "mobile")}</select></label>
+      <label class="champ"><span id="lab-moyen">${revenu ? "Reçu par" : "Payé par"}</span><select name="moyen">${optionsMoyens(p ? p.moyen : "mobile")}</select></label>
     </div>
     <div class="rangee">
       <label class="champ"><span>Fréquence</span><select name="frequence">${FREQUENCES.map(([c, n]) => `<option value="${c}" ${p && p.frequence === c ? "selected" : c === "mensuel" && !p ? "selected" : ""}>${n}</option>`).join("")}</select></label>
@@ -939,12 +1063,13 @@ function formPrevue(id) {
     <div class="bascule"><span>Montant variable (estimation)</span><input type="checkbox" name="estime" value="1" ${p && p.estime ? "checked" : ""}></div>
     ${p ? `<div class="bascule"><span>Active</span><input type="checkbox" name="actif" value="1" ${p.actif !== false ? "checked" : ""}></div>` : ""}
     ${p ? `<div class="mini" style="margin-top:10px">Prochaines échéances : ${prochainesOccurrences(p, aujourdHui(), 3).map((d) => fmtJourCourt.format(deJour(d))).join(" · ") || "aucune"}</div>
-           <button class="bouton danger" type="button" data-action="supprimer-prevue:${p.id}" style="margin-top:10px">Supprimer cette dépense prévue</button>` : ""}`;
+           <button class="bouton danger" type="button" data-action="supprimer-prevue:${p.id}" style="margin-top:10px">Supprimer</button>` : ""}`;
 
-  ouvrirFeuille(p ? "Modifier la dépense prévue" : "Programmer une dépense", corps, (v) => {
+  ouvrirFeuille(p ? "Modifier" : "Programmer", corps, (v) => {
     const commun = {
       libelle: v.libelle.trim(), montant: Number(v.montant) || 0, categorieId: v.categorieId || "",
-      moyen: v.moyen, frequence: v.frequence, intervalle: 1, dateDebut: v.dateDebut, dateFin: v.dateFin || "",
+      moyen: v.moyen, sens: v.sens === "revenu" ? "revenu" : "depense",
+      frequence: v.frequence, intervalle: 1, dateDebut: v.dateDebut, dateFin: v.dateFin || "",
       jourDuMois: Number(v.jourDuMois) || 1, rappelJours: Number(v.rappelJours), rappelHeure: Number(v.rappelHeure),
       estime: !!v.estime, actif: p ? !!v.actif : true, majAt: horodatage(),
     };
@@ -952,33 +1077,84 @@ function formPrevue(id) {
     if (p) Object.assign(p, commun);
     else ETAT.prevues.push({ id: identifiant(), notes: "", ...commun });
   }, p ? "Enregistrer" : "Programmer");
+
+  document.getElementById("choix-sens").addEventListener("click", (e) => {
+    const bouton = e.target.closest("button[data-sens]");
+    if (!bouton) return;
+    const versRevenu = bouton.dataset.sens === "revenu";
+    document.getElementById("sens-choisi").value = versRevenu ? "revenu" : "depense";
+    [...e.currentTarget.children].forEach((x) => x.setAttribute("aria-pressed", x === bouton));
+    document.getElementById("lab-libelle").textContent = versRevenu ? "Quelle rentrée d'argent ?" : "Quelle dépense ?";
+    document.getElementById("lab-moyen").textContent = versRevenu ? "Reçu par" : "Payé par";
+    document.getElementById("champ-libelle").placeholder = versRevenu ? "Salaire, loyer perçu, pension…" : "Loyer, électricité, école…";
+  });
+}
+
+/** Revenu réellement encaissé (salaire, vente, aide…). */
+function formRevenu(id) {
+  const r = id ? (ETAT.revenus || []).find((x) => x.id === id) : null;
+  const corps = `
+    <label class="champ"><span>Montant reçu (${esc(ETAT.reglages.devise)})</span>
+      <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${r ? r.montant : ""}" placeholder="0" ${r ? "" : "autofocus"}></label>
+    <label class="champ"><span>D'où vient cet argent ?</span>
+      <input type="text" name="libelle" required maxlength="60" value="${r ? esc(r.libelle) : ""}" placeholder="Salaire, vente, aide de la famille…"></label>
+    <label class="champ"><span>Reçu le</span><input type="date" name="date" required value="${r ? r.date : aujourdHui()}"></label>
+    <label class="champ"><span>Note (facultatif)</span><textarea name="notes" maxlength="300">${r ? esc(r.notes || "") : ""}</textarea></label>
+    ${r ? "" : `<div class="bascule"><span>Ce revenu tombe chaque mois</span><input type="checkbox" name="recurrent" value="1"></div>`}
+    ${r ? `<button class="bouton danger" type="button" data-action="supprimer-revenu:${r.id}" style="margin-top:10px">Supprimer ce revenu</button>` : ""}`;
+
+  ouvrirFeuille(r ? "Modifier le revenu" : "Nouveau revenu", corps, (v) => {
+    const commun = { libelle: v.libelle.trim(), montant: Number(v.montant) || 0, date: v.date, notes: v.notes || "", majAt: horodatage() };
+    if (!commun.libelle || commun.montant <= 0) return false;
+
+    if (!ETAT.revenus) ETAT.revenus = [];
+    if (r) Object.assign(r, commun);
+    else {
+      ETAT.revenus.push({ id: identifiant(), creeLe: horodatage(), origineId: "", echeance: "", ...commun });
+      if (v.recurrent) {
+        ETAT.prevues.push({
+          id: identifiant(), libelle: commun.libelle, montant: commun.montant, categorieId: "",
+          moyen: "virement", sens: "revenu", frequence: "mensuel", intervalle: 1, dateDebut: commun.date,
+          jourDuMois: deJour(commun.date).getDate(), dateFin: "", rappelJours: 0, rappelHeure: 9,
+          estime: false, actif: true, notes: "", majAt: horodatage(),
+        });
+      }
+    }
+  });
 }
 
 function formPaiement(prevueId, date) {
   const prevue = ETAT.prevues.find((x) => x.id === prevueId);
   if (!prevue) return;
+  const revenu = estRevenu(prevue);
   const corps = `
     <div class="bloc" style="background:var(--surface);margin-bottom:14px">
       <div class="ligne" style="padding-top:0">
-        ${pastille(categorie(prevue.categorieId), "🗓")}
+        ${revenu ? `<div class="pastille" style="background:var(--accent-doux);color:var(--positif)">💰</div>` : pastille(categorie(prevue.categorieId), "🗓")}
         <div class="corps"><div class="titre">${esc(prevue.libelle)}</div>
         <div class="detail">Échéance du ${fmtJourLong.format(deJour(date))}</div></div>
       </div>
     </div>
-    <label class="champ"><span>Montant réellement payé (${esc(ETAT.reglages.devise)})</span>
+    <label class="champ"><span>Montant réellement ${revenu ? "reçu" : "payé"} (${esc(ETAT.reglages.devise)})</span>
       <input type="number" name="montant" inputmode="decimal" step="any" min="0" required value="${prevue.montant}"></label>
-    <label class="champ"><span>Payé le</span><input type="date" name="date" required value="${date}"></label>`;
+    <label class="champ"><span>${revenu ? "Reçu le" : "Payé le"}</span><input type="date" name="date" required value="${date}"></label>`;
 
-  ouvrirFeuille("Régler l'échéance", corps, (v) => {
+  ouvrirFeuille(revenu ? "Encaisser" : "Régler l'échéance", corps, (v) => {
     const somme = Number(v.montant) || 0;
     if (somme <= 0) return false;
     ETAT.sauts.filter((s) => vif(s) && s.prevueId === prevueId && s.date === date).forEach((s) => { s.supprime = true; s.majAt = horodatage(); });
-    ETAT.depenses.push({
+
+    const mouvement = {
       id: identifiant(), libelle: prevue.libelle, montant: somme, date: v.date,
-      categorieId: prevue.categorieId, moyen: prevue.moyen, notes: "",
-      origineId: prevueId, echeance: date, creeLe: horodatage(), majAt: horodatage(),
-    });
-  }, "Confirmer le paiement");
+      notes: "", origineId: prevueId, echeance: date, creeLe: horodatage(), majAt: horodatage(),
+    };
+    if (revenu) {
+      if (!ETAT.revenus) ETAT.revenus = [];
+      ETAT.revenus.push(mouvement);
+    } else {
+      ETAT.depenses.push(Object.assign(mouvement, { categorieId: prevue.categorieId, moyen: prevue.moyen }));
+    }
+  }, revenu ? "Confirmer l'encaissement" : "Confirmer le paiement");
 }
 
 function formCategorie(id) {
@@ -1045,8 +1221,15 @@ document.addEventListener("click", (evenement) => {
     case "onglet":
       UI.onglet = arguments_[0]; UI.recherche = ""; window.scrollTo(0, 0); rendre(); break;
     case "fermer": fermerFeuille(); break;
+    case "sous-onglet":
+      UI.sousOnglet = arguments_[0]; UI.recherche = ""; rendre(); break;
     case "nouvelle-depense": formDepense(null); break;
     case "modifier-depense": formDepense(arguments_[0]); break;
+    case "nouveau-revenu":
+      UI.sousOnglet = "revenus"; formRevenu(null); break;
+    case "modifier-revenu": formRevenu(arguments_[0]); break;
+    case "supprimer-revenu":
+      marquerSupprime(ETAT.revenus, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
     case "nouvelle-prevue": formPrevue(null); break;
     case "modifier-prevue": formPrevue(arguments_[0]); break;
     case "nouvelle-categorie": formCategorie(null); break;
@@ -1060,7 +1243,9 @@ document.addEventListener("click", (evenement) => {
         .forEach((s) => { s.supprime = true; s.majAt = horodatage(); });
       enregistrer(); rendre(); break;
     case "annuler-paiement":
-      marquerSupprime(ETAT.depenses, arguments_[0]); enregistrer(); rendre(); break;
+      marquerSupprime(ETAT.depenses, arguments_[0]);
+      marquerSupprime(ETAT.revenus || [], arguments_[0]);
+      enregistrer(); rendre(); break;
     case "supprimer-depense":
       marquerSupprime(ETAT.depenses, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
     case "supprimer-prevue":
@@ -1083,7 +1268,9 @@ function marquerSupprime(collection, id) {
 }
 
 document.getElementById("bouton-ajout").addEventListener("click", () => {
-  if (UI.onglet === "prevues") formPrevue(null); else formDepense(null);
+  if (UI.onglet === "prevues") formPrevue(null);
+  else if (UI.onglet === "depenses" && UI.sousOnglet === "revenus") formRevenu(null);
+  else formDepense(null);
 });
 
 feuille.addEventListener("click", (e) => { if (e.target === feuille) feuille.close(); });
@@ -1105,14 +1292,19 @@ async function proposerFichier(nom, contenu, type) {
 }
 
 function exporterCSV() {
-  const lignes = [["Date", "Libellé", "Catégorie", "Montant", "Devise", "Payé par", "Origine", "Note"].join(";")];
-  ETAT.depenses.filter(vif).sort((a, b) => b.date.localeCompare(a.date)).forEach((d) => {
-    const cat = categorie(d.categorieId);
-    const champs = [d.date, d.libelle, cat ? cat.nom : "", String(d.montant).replace(".", ","), ETAT.reglages.devise,
-      (MOYENS.find((m) => m[0] === d.moyen) || ["", ""])[1], d.origineId ? "Prévue" : "Ponctuelle", d.notes || ""];
-    lignes.push(champs.map((c) => (/[";\n]/.test(c) ? '"' + String(c).replace(/"/g, '""') + '"' : c)).join(";"));
+  const lignesCSV = [["Date", "Type", "Libellé", "Catégorie", "Montant", "Devise", "Moyen", "Origine", "Note"].join(";")];
+  const mouvements = [
+    ...ETAT.depenses.filter(vif).map((d) => ({ ...d, type: "Dépense" })),
+    ...(ETAT.revenus || []).filter(vif).map((r) => ({ ...r, type: "Revenu" })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+
+  mouvements.forEach((m) => {
+    const cat = categorie(m.categorieId);
+    const champs = [m.date, m.type, m.libelle, cat ? cat.nom : "", String(m.montant).replace(".", ","), ETAT.reglages.devise,
+      (MOYENS.find((x) => x[0] === m.moyen) || ["", ""])[1], m.origineId ? "Prévu" : "Ponctuel", m.notes || ""];
+    lignesCSV.push(champs.map((c) => (/[";\n]/.test(c) ? '"' + String(c).replace(/"/g, '""') + '"' : c)).join(";"));
   });
-  proposerFichier(`depenses-${aujourdHui()}.csv`, "\uFEFF" + lignes.join("\n"), "text/csv;charset=utf-8");
+  proposerFichier(`mouvements-${aujourdHui()}.csv`, "\uFEFF" + lignesCSV.join("\n"), "text/csv;charset=utf-8");
 }
 
 function exporterJSON() {
@@ -1151,6 +1343,7 @@ function genererICS() {
   let nombre = 0;
 
   ETAT.prevues.filter((p) => vif(p) && p.actif !== false).forEach((prevue) => {
+    const revenu = estRevenu(prevue);
     const jour = prevue.jourDuMois || deJour(prevue.dateDebut).getDate();
     const repetable = prevue.frequence !== "unique" && (["quotidien", "hebdomadaire"].includes(prevue.frequence) || jour <= 28);
     const dates = repetable ? prochainesOccurrences(prevue, aujourdHui(), 1) : prochainesOccurrences(prevue, aujourdHui(), 24);
@@ -1177,17 +1370,17 @@ function genererICS() {
         `DTSTAMP:${tampon}`,
         `DTSTART;VALUE=DATE:${compact(date)}`,
         `DTEND;VALUE=DATE:${compact(jourISO(lendemain))}`,
-        `SUMMARY:${echapperICS("💸 " + titre)}`,
-        `DESCRIPTION:${echapperICS("Dépense prévue dans MonBudget.")}`,
+        `SUMMARY:${echapperICS((revenu ? "💰 " : "💸 ") + titre)}`,
+        `DESCRIPTION:${echapperICS(revenu ? "Rentrée d'argent attendue (MonBudget)." : "Dépense prévue dans MonBudget.")}`,
         "TRANSP:TRANSPARENT");
       if (regle) lignes.push(`RRULE:${regle}`);
       if (Number(prevue.rappelJours) > 0) {
         lignes.push("BEGIN:VALARM", "ACTION:DISPLAY",
-          `DESCRIPTION:${echapperICS(prevue.libelle + " à payer dans " + prevue.rappelJours + " jour(s)")}`,
+          `DESCRIPTION:${echapperICS(prevue.libelle + (revenu ? " attendu dans " : " à payer dans ") + prevue.rappelJours + " jour(s)")}`,
           `TRIGGER:-PT${heures}H`, "END:VALARM");
       }
       lignes.push("BEGIN:VALARM", "ACTION:DISPLAY",
-        `DESCRIPTION:${echapperICS(prevue.libelle + " à payer aujourd'hui")}`,
+        `DESCRIPTION:${echapperICS(prevue.libelle + (revenu ? " attendu aujourd'hui" : " à payer aujourd'hui"))}`,
         `TRIGGER:PT${Number(prevue.rappelHeure) || 9}H`, "END:VALARM", "END:VEVENT");
     });
   });
@@ -1218,6 +1411,13 @@ async function exporterICS() {
 function chargerExemple() {
   const cat = (nom) => (categoriesTriees().find((c) => c.nom === nom) || {}).id || "";
   const debut = jourISO(debutDuMois(new Date()));
+
+  ETAT.prevues.push({
+    id: identifiant(), libelle: "Salaire", montant: 400000, categorieId: "", moyen: "virement",
+    sens: "revenu", frequence: "mensuel", intervalle: 1, dateDebut: debut, dateFin: "", jourDuMois: 28,
+    rappelJours: 0, rappelHeure: 9, estime: false, actif: true, notes: "", majAt: horodatage(),
+  });
+
   const prevues = [
     ["Loyer", 150000, "Logement", 5, "virement", 3, false],
     ["Électricité", 25000, "Factures", 15, "mobile", 2, true],
@@ -1226,7 +1426,7 @@ function chargerExemple() {
   ];
   prevues.forEach(([libelle, somme, nomCat, jour, moyen, rappel, estime]) => {
     ETAT.prevues.push({
-      id: identifiant(), libelle, montant: somme, categorieId: cat(nomCat), moyen,
+      id: identifiant(), libelle, montant: somme, categorieId: cat(nomCat), moyen, sens: "depense",
       frequence: "mensuel", intervalle: 1, dateDebut: debut, dateFin: "", jourDuMois: jour,
       rappelJours: rappel, rappelHeure: 9, estime, actif: true, notes: "", majAt: horodatage(),
     });
@@ -1240,6 +1440,11 @@ function chargerExemple() {
     ETAT.depenses.push({ id: identifiant(), libelle, montant: somme, date: jourISO(d), categorieId: cat(nomCat),
       moyen, notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
   });
+
+  if (!ETAT.revenus) ETAT.revenus = [];
+  const jourSalaire = new Date(); jourSalaire.setDate(Math.max(1, jourSalaire.getDate() - 10));
+  ETAT.revenus.push({ id: identifiant(), libelle: "Salaire du mois dernier", montant: 400000,
+    date: jourISO(jourSalaire), notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
 
   if (!ETAT.reglages.budget) { ETAT.reglages.budget = 350000; ETAT.reglages.majAt = horodatage(); }
   enregistrer(); rendre();
@@ -1298,6 +1503,7 @@ function fusionner(a, b) {
     reglages: String((a.reglages || {}).majAt || "") >= String((b.reglages || {}).majAt || "") ? a.reglages : b.reglages,
     categories: fusionnerListes(a.categories, b.categories),
     depenses: fusionnerListes(a.depenses, b.depenses),
+    revenus: fusionnerListes(a.revenus, b.revenus),
     prevues: fusionnerListes(a.prevues, b.prevues),
     sauts: fusionnerListes(a.sauts, b.sauts),
   };
@@ -1366,7 +1572,7 @@ function etatSquelette(base) {
     majAt: base.majAt || vierge.majAt,
     reglages: Object.assign({}, vierge.reglages, base.reglages || {}),
     categories: (base.categories && base.categories.length) ? [] : vierge.categories,
-    depenses: [], prevues: [], sauts: [],
+    depenses: [], revenus: [], prevues: [], sauts: [],
   };
 }
 
