@@ -337,8 +337,10 @@ function etatVierge() {
   return {
     majAt: horodatage(),
     reglages: { devise: "XOF", budget: 0, seuil: 0.8, majAt: horodatage() },
+    // Identifiant dérivé du nom : deux appareils qui démarrent à vide créent la
+    // même fiche, la synchronisation ne peut donc plus les additionner.
     categories: CATEGORIES_DEFAUT.map((c, i) => ({
-      id: identifiant(), nom: c.nom, emoji: c.emoji, couleur: c.couleur,
+      id: "cat-" + cleTexte(c.nom), nom: c.nom, emoji: c.emoji, couleur: c.couleur,
       plafond: 0, ordre: i, majAt: horodatage(),
     })),
     depenses: [],
@@ -346,6 +348,61 @@ function etatVierge() {
     prevues: [],
     sauts: [],
   };
+}
+
+/** Version simplifiée d'un texte, pour comparer deux noms de catégorie. */
+function cleTexte(texte) {
+  return String(texte).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** Ajoute l'objet, ou remplace celui qui porte déjà le même identifiant. */
+function poser(collection, objet) {
+  const index = collection.findIndex((x) => x.id === objet.id);
+  if (index >= 0) collection[index] = objet; else collection.push(objet);
+}
+
+/**
+ * Fusionne les catégories qui portent le même nom.
+ * Répare les doublons créés avant les identifiants stables : les dépenses et les
+ * dépenses prévues sont rattachées à la fiche conservée, rien n'est perdu.
+ */
+function dedoublonnerCategories() {
+  const groupes = new Map();
+  ETAT.categories.filter(vif).forEach((c) => {
+    const cle = cleTexte(c.nom);
+    if (!groupes.has(cle)) groupes.set(cle, []);
+    groupes.get(cle).push(c);
+  });
+
+  let modifie = false;
+  const usage = (c) => ETAT.depenses.filter((d) => vif(d) && d.categorieId === c.id).length
+    + ETAT.prevues.filter((x) => vif(x) && x.categorieId === c.id).length;
+
+  groupes.forEach((liste) => {
+    if (liste.length < 2) return;
+    liste.sort((a, b) => {
+      const stable = Number(String(b.id).startsWith("cat-")) - Number(String(a.id).startsWith("cat-"));
+      if (stable) return stable;
+      const utilisation = usage(b) - usage(a);
+      if (utilisation) return utilisation;
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    const gardee = liste[0];
+    liste.slice(1).forEach((doublon) => {
+      ETAT.depenses.forEach((d) => { if (d.categorieId === doublon.id) { d.categorieId = gardee.id; d.majAt = horodatage(); } });
+      ETAT.prevues.forEach((x) => { if (x.categorieId === doublon.id) { x.categorieId = gardee.id; x.majAt = horodatage(); } });
+      if (!gardee.plafond && doublon.plafond) gardee.plafond = doublon.plafond;
+      gardee.majAt = horodatage();
+      doublon.supprime = true;
+      doublon.majAt = horodatage();
+      modifie = true;
+    });
+  });
+
+  if (modifie) ETAT.categories.filter(vif).forEach((c, i) => { c.ordre = i; });
+  return modifie;
 }
 
 function identifiant() { return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4); }
@@ -1176,6 +1233,12 @@ function formCategorie(id) {
   ouvrirFeuille(c ? "Modifier la catégorie" : "Nouvelle catégorie", corps, (v) => {
     const nom = v.nom.trim();
     if (!nom) return false;
+    const existante = ETAT.categories.find((x) => vif(x) && x.id !== (c && c.id) && cleTexte(x.nom) === cleTexte(nom));
+    if (existante) {
+      informer("Catégorie déjà présente",
+        `Une catégorie <b>${esc(existante.nom)}</b> existe déjà. Modifiez-la plutôt que d'en créer une seconde : vos dépenses resteront regroupées au même endroit.`);
+      return false;
+    }
     const commun = { nom, emoji: v.emoji, couleur: v.couleur, plafond: Number(v.plafond) || 0, majAt: horodatage() };
     if (c) Object.assign(c, commun);
     else ETAT.categories.push({ id: identifiant(), ordre: ETAT.categories.length, ...commun });
@@ -1320,6 +1383,7 @@ function importerFichier(evenement) {
       const importe = JSON.parse(String(lecteur.result));
       if (!importe || !Array.isArray(importe.depenses)) throw new Error("format");
       ETAT = fusionner(ETAT, importe);
+      dedoublonnerCategories();
       enregistrer(); rendre();
       informer("Sauvegarde restaurée", "Vos dépenses ont été fusionnées avec celles déjà présentes : rien n'a été écrasé.");
     } catch (e) {
@@ -1409,11 +1473,12 @@ async function exporterICS() {
 /* ======================= Données d'exemple / remise à zéro ======================= */
 
 function chargerExemple() {
-  const cat = (nom) => (categoriesTriees().find((c) => c.nom === nom) || {}).id || "";
+  const cat = (nom) => "cat-" + cleTexte(nom);
   const debut = jourISO(debutDuMois(new Date()));
+  if (!ETAT.revenus) ETAT.revenus = [];
 
-  ETAT.prevues.push({
-    id: identifiant(), libelle: "Salaire", montant: 400000, categorieId: "", moyen: "virement",
+  poser(ETAT.prevues, {
+    id: "demo-salaire", libelle: "Salaire", montant: 400000, categorieId: "", moyen: "virement",
     sens: "revenu", frequence: "mensuel", intervalle: 1, dateDebut: debut, dateFin: "", jourDuMois: 28,
     rappelJours: 0, rappelHeure: 9, estime: false, actif: true, notes: "", majAt: horodatage(),
   });
@@ -1425,8 +1490,8 @@ function chargerExemple() {
     ["Épargne automatique", 50000, "Épargne", 28, "virement", 2, false],
   ];
   prevues.forEach(([libelle, somme, nomCat, jour, moyen, rappel, estime]) => {
-    ETAT.prevues.push({
-      id: identifiant(), libelle, montant: somme, categorieId: cat(nomCat), moyen, sens: "depense",
+    poser(ETAT.prevues, {
+      id: "demo-" + cleTexte(libelle), libelle, montant: somme, categorieId: cat(nomCat), moyen, sens: "depense",
       frequence: "mensuel", intervalle: 1, dateDebut: debut, dateFin: "", jourDuMois: jour,
       rappelJours: rappel, rappelHeure: 9, estime, actif: true, notes: "", majAt: horodatage(),
     });
@@ -1437,13 +1502,12 @@ function chargerExemple() {
     ["Crédit téléphone", 5000, "Factures", 6, "mobile"], ["Courses du mois", 45000, "Alimentation", 8, "carte"]];
   exemples.forEach(([libelle, somme, nomCat, ilya, moyen]) => {
     const d = new Date(); d.setDate(d.getDate() - ilya);
-    ETAT.depenses.push({ id: identifiant(), libelle, montant: somme, date: jourISO(d), categorieId: cat(nomCat),
-      moyen, notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
+    poser(ETAT.depenses, { id: "demo-dep-" + cleTexte(libelle), libelle, montant: somme, date: jourISO(d),
+      categorieId: cat(nomCat), moyen, notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
   });
 
-  if (!ETAT.revenus) ETAT.revenus = [];
   const jourSalaire = new Date(); jourSalaire.setDate(Math.max(1, jourSalaire.getDate() - 10));
-  ETAT.revenus.push({ id: identifiant(), libelle: "Salaire du mois dernier", montant: 400000,
+  poser(ETAT.revenus, { id: "demo-rev-salaire", libelle: "Salaire du mois dernier", montant: 400000,
     date: jourISO(jourSalaire), notes: "", origineId: "", echeance: "", creeLe: horodatage(), majAt: horodatage() });
 
   if (!ETAT.reglages.budget) { ETAT.reglages.budget = 350000; ETAT.reglages.majAt = horodatage(); }
@@ -1538,6 +1602,7 @@ function preparerInstallation() {
 async function demarrer() {
   const local = chargerLocal();
   if (local) ETAT = fusionner(etatSquelette(local), local);
+  if (dedoublonnerCategories()) enregistrer();
   rendre();
   preparerInstallation();
 
@@ -1554,18 +1619,15 @@ async function demarrer() {
     const instantane = await base.doc("sauvegarde/etat").get();
     if (instantane.exists) {
       const distant = JSON.parse(instantane.data().donnees || "{}");
-      if (distant && Array.isArray(distant.depenses)) {
-        ETAT = fusionner(ETAT, distant);
-        try { localStorage.setItem(CLE_LOCALE, JSON.stringify(ETAT)); } catch (e) {}
-      }
+      if (distant && Array.isArray(distant.depenses)) ETAT = fusionner(ETAT, distant);
     }
+    dedoublonnerCategories();
     etatSync = "distant";
     enregistrer();
     rendre();
   } catch (e) { baseDistante = null; }
 }
 
-/** Complète une sauvegarde ancienne avec les champs manquants. */
 function etatSquelette(base) {
   const vierge = etatVierge();
   return {
