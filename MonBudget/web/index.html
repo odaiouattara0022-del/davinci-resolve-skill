@@ -258,6 +258,22 @@
     box-shadow: 0 8px 22px -8px color-mix(in srgb, var(--accent) 70%, transparent);
   }
 
+  .verrou { position: fixed; inset: 0; z-index: 30; background: var(--fond); display: grid; place-items: center; padding: 24px; }
+  .verrou-carte { width: 100%; max-width: 320px; text-align: center; }
+  .verrou-cadenas svg { width: 34px; height: 34px; stroke: var(--accent); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .verrou-carte h2 { font-size: 19px; font-weight: 600; margin: 10px 0 4px; }
+  .points { display: flex; justify-content: center; gap: 13px; margin: 22px 0 26px; min-height: 14px; }
+  .points i { width: 13px; height: 13px; border-radius: 99px; border: 1.5px solid var(--encre-3); display: block; }
+  .points i.plein { background: var(--accent); border-color: var(--accent); }
+  .clavier { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .clavier button { height: 62px; border-radius: 99px; border: 1px solid var(--ligne); background: var(--surface); font-size: 23px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .clavier button.discret { border-color: transparent; background: none; font-size: 14px; font-weight: 600; color: var(--encre-2); }
+  .clavier button:disabled { opacity: .4; }
+  .verrou #verrou-biometrie { margin-top: 18px; }
+  .verrou #verrou-annuler { margin-top: 14px; }
+  .verrou.erreur .points { animation: secousse .4s; }
+  @keyframes secousse { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
   .vide { text-align: center; color: var(--encre-2); font-size: 13.5px; padding: 18px 8px; }
   .vide b { display: block; color: var(--encre); font-size: 15px; margin-bottom: 4px; font-weight: 600; }
   .note { font-size: 12px; color: var(--encre-3); margin-top: 8px; }
@@ -289,6 +305,20 @@
 <button class="ajout" id="bouton-ajout" type="button" aria-label="Ajouter une dépense">+</button>
 
 <nav class="onglets" id="onglets" aria-label="Navigation principale"></nav>
+
+<div class="verrou" id="verrou" hidden>
+  <div class="verrou-carte">
+    <div class="verrou-cadenas" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    </div>
+    <h2 id="verrou-titre">MonBudget est verrouillé</h2>
+    <p class="mini" id="verrou-message">Saisissez votre code.</p>
+    <div class="points" id="verrou-points" aria-hidden="true"></div>
+    <div class="clavier" id="verrou-clavier"></div>
+    <button class="bouton fant" type="button" id="verrou-biometrie" hidden>Déverrouiller avec Face ID</button>
+    <button class="lien" type="button" id="verrou-annuler" hidden>Annuler</button>
+  </div>
+</div>
 
 <dialog id="feuille"><div class="feuille" id="feuille-contenu"></div></dialog>
 
@@ -988,6 +1018,27 @@ function vueReglages() {
     </section>
 
     <section class="bloc">
+      <h2>Sécurité</h2>
+      ${reglagesVerrou().actif ? `
+        <p class="mini">Un code est demandé à chaque ouverture de MonBudget.</p>
+        <label class="champ" style="margin-top:12px"><span>Verrouiller après</span>
+          <select id="r-delai">
+            ${[[0, "immédiatement"], [1, "1 minute"], [5, "5 minutes"], [15, "15 minutes"]].map(([v, n]) =>
+              `<option value="${v}" ${Number(reglagesVerrou().delai) === v ? "selected" : ""}>Quand je quitte l'app, ${n}</option>`).join("")}
+          </select>
+        </label>
+        ${biometriePossible ? (reglagesVerrou().credential
+          ? `<button class="bouton fant" type="button" data-action="biometrie-desactiver">Ne plus utiliser Face ID</button>`
+          : `<button class="bouton fant" type="button" data-action="biometrie-activer">Déverrouiller avec Face ID</button>`) : ""}
+        <button class="bouton fant" type="button" data-action="verrou-modifier">Changer le code</button>
+        <button class="bouton danger" type="button" data-action="verrou-desactiver">Désactiver le code</button>
+      ` : `
+        <p class="mini">Personne d'autre que vous ne peut ouvrir le lien de MonBudget : il est rattaché à votre compte. Ajoutez un code pour protéger aussi vos chiffres si votre iPhone déverrouillé passe dans d'autres mains.</p>
+        <button class="bouton" type="button" data-action="verrou-activer" style="margin-top:12px">Protéger par un code</button>
+      `}
+    </section>
+
+    <section class="bloc">
       <h2>Données</h2>
       <button class="bouton fant" type="button" data-action="exporter-csv">Exporter mes mouvements (CSV)</button>
       <button class="bouton fant" type="button" data-action="exporter-json">Sauvegarder tout (fichier JSON)</button>
@@ -1007,6 +1058,14 @@ function vueReglages() {
   document.getElementById("r-budget").addEventListener("change", (e) => { ETAT.reglages.budget = Math.max(0, Number(e.target.value) || 0); ETAT.reglages.majAt = horodatage(); enregistrer(); });
   document.getElementById("r-seuil").addEventListener("change", (e) => { ETAT.reglages.seuil = Number(e.target.value); ETAT.reglages.majAt = horodatage(); enregistrer(); });
   document.getElementById("fichier-import").addEventListener("change", importerFichier);
+  const champDelai = document.getElementById("r-delai");
+  if (champDelai) {
+    champDelai.addEventListener("change", (e) => {
+      reglagesVerrou().delai = Number(e.target.value) || 0;
+      ETAT.reglages.majAt = horodatage();
+      enregistrer();
+    });
+  }
 }
 
 function texteSync() {
@@ -1315,6 +1374,31 @@ document.addEventListener("click", (evenement) => {
       marquerSupprime(ETAT.prevues, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
     case "supprimer-categorie":
       marquerSupprime(ETAT.categories, arguments_[0]); fermerFeuille(); enregistrer(); rendre(); break;
+    case "verrou-activer": definirCode(); break;
+    case "verrou-modifier": demanderCodePuis("Changer le code", definirCode); break;
+    case "verrou-desactiver":
+      demanderCodePuis("Désactiver le code", () => {
+        const v = reglagesVerrou();
+        v.actif = false; v.hachage = ""; v.sel = ""; v.credential = "";
+        ETAT.reglages.majAt = horodatage();
+        appDeverrouillee = true;
+        enregistrer(); rendre();
+      });
+      break;
+    case "biometrie-activer":
+      activerBiometrie().then((reussi) => {
+        rendre();
+        informer(reussi ? "Face ID activé" : "Face ID indisponible",
+          reussi
+            ? "Vous pourrez déverrouiller MonBudget d'un regard. Le code reste utilisable si Face ID échoue."
+            : "Votre iPhone n'a pas accepté l'enregistrement. Le code d'accès continue de protéger l'application.");
+      });
+      break;
+    case "biometrie-desactiver":
+      reglagesVerrou().credential = "";
+      ETAT.reglages.majAt = horodatage();
+      enregistrer(); rendre();
+      break;
     case "exporter-csv": exporterCSV(); break;
     case "exporter-ics": exporterICS(); break;
     case "exporter-json": exporterJSON(); break;
@@ -1521,7 +1605,9 @@ function confirmerEffacement() {
 }
 
 function toutEffacer() {
+  const verrou = ETAT.reglages.verrou;
   ETAT = etatVierge();
+  if (verrou && verrou.actif) { ETAT.reglages.verrou = verrou; ETAT.reglages.majAt = horodatage(); }
   fermerFeuille(); enregistrer(); rendre();
 }
 
@@ -1597,6 +1683,258 @@ function preparerInstallation() {
   }
 }
 
+/* ======================= Verrouillage ======================= */
+
+/*
+ * Deux barrières : le lien de l'application est privé (il faut être connecté au
+ * compte qui l'a publiée), et ce code protège l'app quand le téléphone
+ * déverrouillé change de mains. Le code n'est jamais stocké : seule son
+ * empreinte PBKDF2 l'est, avec un sel tiré au hasard.
+ */
+
+const elementVerrou = document.getElementById("verrou");
+const CLE_VERROU_LOCAL = "monbudget.verrou";
+
+let verrouSaisie = "";
+let verrouMode = "ouverture";
+let verrouCodeProvisoire = "";
+let verrouSurSucces = null;
+let verrouTentatives = 0;
+let verrouBloqueJusqua = 0;
+let verrouMasqueDepuis = 0;
+let appDeverrouillee = true;
+let biometriePossible = false;
+
+function reglagesVerrou() {
+  if (!ETAT.reglages.verrou) {
+    ETAT.reglages.verrou = { actif: false, sel: "", hachage: "", longueur: 4, delai: 0, credential: "" };
+  }
+  return ETAT.reglages.verrou;
+}
+
+function cryptoDisponible() { return !!(window.crypto && window.crypto.subtle && window.crypto.subtle.deriveBits); }
+
+function octetsVersBase64(octets) {
+  let texte = "";
+  octets.forEach((o) => { texte += String.fromCharCode(o); });
+  return btoa(texte);
+}
+
+function base64VersOctets(base64) {
+  const texte = atob(base64);
+  const octets = new Uint8Array(texte.length);
+  for (let i = 0; i < texte.length; i++) octets[i] = texte.charCodeAt(i);
+  return octets;
+}
+
+async function empreinteCode(code, sel) {
+  const cle = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: base64VersOctets(sel), iterations: 150000, hash: "SHA-256" }, cle, 256);
+  return octetsVersBase64(new Uint8Array(bits));
+}
+
+async function codeCorrect(code) {
+  const v = reglagesVerrou();
+  if (!v.hachage || !v.sel) return false;
+  try { return (await empreinteCode(code, v.sel)) === v.hachage; } catch (e) { return false; }
+}
+
+// ---- Affichage ----
+
+function construireClavier() {
+  const clavier = document.getElementById("verrou-clavier");
+  if (clavier.childElementCount) return;
+  const touches = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "effacer", "0", "valider"];
+  clavier.innerHTML = touches.map((touche) => {
+    if (touche === "effacer") return `<button type="button" class="discret" data-touche="effacer">Effacer</button>`;
+    if (touche === "valider") return `<button type="button" class="discret" data-touche="valider">OK</button>`;
+    return `<button type="button" data-touche="${touche}">${touche}</button>`;
+  }).join("");
+
+  clavier.addEventListener("click", (evenement) => {
+    const bouton = evenement.target.closest("button[data-touche]");
+    if (!bouton || Date.now() < verrouBloqueJusqua) return;
+    const touche = bouton.dataset.touche;
+    if (touche === "effacer") verrouSaisie = verrouSaisie.slice(0, -1);
+    else if (touche === "valider") { validerSaisie(); return; }
+    else if (verrouSaisie.length < 8) verrouSaisie += touche;
+    majPoints();
+    const attendue = verrouMode === "ouverture" || verrouMode === "verifier" ? (reglagesVerrou().longueur || 4) : 0;
+    if (attendue && verrouSaisie.length === attendue) validerSaisie();
+  });
+}
+
+function majPoints() {
+  const points = document.getElementById("verrou-points");
+  const total = Math.max(verrouSaisie.length, verrouMode === "ouverture" || verrouMode === "verifier" ? (reglagesVerrou().longueur || 4) : 4);
+  points.innerHTML = Array.from({ length: total }, (_, i) => `<i class="${i < verrouSaisie.length ? "plein" : ""}"></i>`).join("");
+}
+
+function afficherVerrou(mode, titre, message, options = {}) {
+  verrouMode = mode;
+  verrouSaisie = "";
+  verrouSurSucces = options.surSucces || null;
+  construireClavier();
+  document.getElementById("verrou-titre").textContent = titre;
+  document.getElementById("verrou-message").textContent = message;
+  document.getElementById("verrou-annuler").hidden = !options.annulable;
+  const bouton = document.getElementById("verrou-biometrie");
+  bouton.hidden = !(mode === "ouverture" && reglagesVerrou().credential);
+  elementVerrou.hidden = false;
+  majPoints();
+}
+
+function fermerVerrou() {
+  elementVerrou.hidden = true;
+  verrouSaisie = "";
+  verrouSurSucces = null;
+}
+
+function signalerErreur(message) {
+  document.getElementById("verrou-message").textContent = message;
+  elementVerrou.classList.add("erreur");
+  setTimeout(() => elementVerrou.classList.remove("erreur"), 400);
+  verrouSaisie = "";
+  majPoints();
+}
+
+// ---- Enchaînements ----
+
+async function validerSaisie() {
+  const code = verrouSaisie;
+  const v = reglagesVerrou();
+
+  if (verrouMode === "ouverture" || verrouMode === "verifier") {
+    if (code.length < 4) { signalerErreur("Code trop court."); return; }
+    if (await codeCorrect(code)) {
+      verrouTentatives = 0;
+      if (verrouMode === "ouverture") { appDeverrouillee = true; fermerVerrou(); rendre(); }
+      else { const suite = verrouSurSucces; fermerVerrou(); if (suite) suite(); }
+      return;
+    }
+    verrouTentatives++;
+    if (verrouTentatives >= 5) {
+      const attente = 30 * Math.pow(2, Math.floor(verrouTentatives / 5) - 1);
+      verrouBloqueJusqua = Date.now() + attente * 1000;
+      signalerErreur(`Trop d'essais. Réessayez dans ${attente} secondes.`);
+      setTimeout(() => { if (Date.now() >= verrouBloqueJusqua) signalerErreur("Saisissez votre code."); }, attente * 1000);
+      return;
+    }
+    signalerErreur("Code incorrect. Réessayez.");
+    return;
+  }
+
+  if (verrouMode === "definir") {
+    if (code.length < 4) { signalerErreur("Choisissez au moins 4 chiffres."); return; }
+    verrouCodeProvisoire = code;
+    afficherVerrou("confirmer", "Confirmez le code", "Saisissez-le une seconde fois.", { annulable: true });
+    return;
+  }
+
+  if (verrouMode === "confirmer") {
+    if (code !== verrouCodeProvisoire) {
+      verrouCodeProvisoire = "";
+      afficherVerrou("definir", "Choisissez un code", "Les deux codes ne correspondaient pas. Recommencez.", { annulable: true });
+      return;
+    }
+    v.sel = octetsVersBase64(crypto.getRandomValues(new Uint8Array(16)));
+    v.hachage = await empreinteCode(code, v.sel);
+    v.longueur = code.length;
+    v.actif = true;
+    verrouCodeProvisoire = "";
+    appDeverrouillee = true;
+    ETAT.reglages.majAt = horodatage();
+    enregistrer();
+    fermerVerrou();
+    rendre();
+    informer("Code activé", "MonBudget demandera ce code à chaque ouverture. <b>Notez-le quelque part</b> : sans lui, il faudra tout effacer et repartir d'une sauvegarde.");
+  }
+}
+
+function demanderOuverture() {
+  appDeverrouillee = false;
+  if (feuille.open) feuille.close();
+  afficherVerrou("ouverture", "MonBudget est verrouillé", "Saisissez votre code.");
+}
+
+function definirCode() {
+  if (!cryptoDisponible()) {
+    informer("Impossible ici", "Le verrouillage a besoin des fonctions de sécurité du navigateur. Ouvrez MonBudget depuis son icône sur l'écran d'accueil, puis réessayez.");
+    return;
+  }
+  afficherVerrou("definir", "Choisissez un code", "4 à 8 chiffres.", { annulable: true });
+}
+
+function demanderCodePuis(titre, suite) {
+  afficherVerrou("verifier", titre, "Saisissez votre code actuel.", { annulable: true, surSucces: suite });
+}
+
+document.getElementById("verrou-annuler").addEventListener("click", () => {
+  if (verrouMode === "ouverture") return;
+  verrouCodeProvisoire = "";
+  fermerVerrou();
+});
+
+// ---- Face ID / Touch ID (WebAuthn) ----
+
+async function biometrieDisponible() {
+  try {
+    return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  } catch (e) { return false; }
+}
+
+async function activerBiometrie() {
+  try {
+    const identifiant = crypto.getRandomValues(new Uint8Array(16));
+    const justificatif = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: "MonBudget" },
+        user: { id: identifiant, name: "monbudget", displayName: "MonBudget" },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
+        timeout: 60000,
+      },
+    });
+    if (!justificatif) return false;
+    reglagesVerrou().credential = octetsVersBase64(new Uint8Array(justificatif.rawId));
+    ETAT.reglages.majAt = horodatage();
+    enregistrer();
+    return true;
+  } catch (e) { return false; }
+}
+
+async function deverrouillerParBiometrie() {
+  const v = reglagesVerrou();
+  if (!v.credential) return;
+  try {
+    const reponse = await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{ type: "public-key", id: base64VersOctets(v.credential) }],
+        userVerification: "required",
+        timeout: 60000,
+      },
+    });
+    if (reponse) { appDeverrouillee = true; verrouTentatives = 0; fermerVerrou(); rendre(); }
+  } catch (e) {
+    signalerErreur("Face ID n'a pas fonctionné. Utilisez votre code.");
+  }
+}
+
+document.getElementById("verrou-biometrie").addEventListener("click", deverrouillerParBiometrie);
+
+// ---- Verrouillage automatique ----
+
+document.addEventListener("visibilitychange", () => {
+  const v = reglagesVerrou();
+  if (!v.actif) return;
+  if (document.visibilityState === "hidden") { verrouMasqueDepuis = Date.now(); return; }
+  const delai = (Number(v.delai) || 0) * 60000;
+  if (appDeverrouillee && Date.now() - verrouMasqueDepuis >= delai) demanderOuverture();
+});
+
 /* ======================= Démarrage ======================= */
 
 async function demarrer() {
@@ -1605,8 +1943,13 @@ async function demarrer() {
   if (dedoublonnerCategories()) enregistrer();
   rendre();
   preparerInstallation();
+  if (reglagesVerrou().actif) demanderOuverture();
+  biometrieDisponible().then((possible) => { biometriePossible = possible; if (UI.onglet === "reglages") rendre(); });
 
   if (typeof window.claude === "undefined" || !window.claude.use) return;
+
+  biometriePossible = await biometrieDisponible();
+  if (biometriePossible && UI.onglet === "reglages") rendre();
 
   try {
     capTelechargement = await window.claude.use("downloads");

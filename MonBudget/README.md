@@ -47,6 +47,25 @@ et les notifications arrivent même application fermée. Bouton
 **Réglages ▸ Créer mes rappels de calendrier**, à relancer après avoir modifié une
 dépense prévue.
 
+### Qui peut y accéder
+
+Deux barrières distinctes :
+
+1. **Le lien est privé.** L'application est rattachée au compte Claude qui l'a
+   publiée : même en connaissant l'adresse exacte, personne d'autre ne peut
+   l'ouvrir.
+2. **Un code d'accès** (Réglages ▸ Sécurité) protège les chiffres si l'iPhone
+   déverrouillé passe dans d'autres mains : 4 à 8 chiffres, demandés à
+   l'ouverture et au retour dans l'app (immédiatement, ou après 1, 5 ou
+   15 minutes). **Face ID / Touch ID** peut remplacer la saisie du code.
+
+Le code n'est jamais enregistré : seule son empreinte PBKDF2-SHA256
+(150 000 itérations, sel aléatoire) l'est. Cinq essais ratés déclenchent une
+attente qui double à chaque série. Ce verrou masque l'application ; le
+chiffrement des données au repos reste assuré par le code de déverrouillage de
+l'iPhone lui-même. **Un code oublié ne se récupère pas** : gardez une sauvegarde
+JSON.
+
 ### Où vivent les données
 
 Sur l'iPhone (stockage local du navigateur), plus une sauvegarde en ligne quand
