@@ -1,6 +1,0 @@
-tag,name,category,kind,owner,manufacturer,model,serial,status,condition,location,holder,project,due,qty,min_qty,unit,purchase_date,purchase_price,currency,warranty_end,insured_value,maint_interval_days,last_maint,notes
-CAM-0001,Sony FX6,CAM,unique,STUDIO,Sony,ILME-FX6V,SN12345,in_stock,good,SHELF-A,,,,1,0,u,2024-03-01,5900,EUR,2026-03-01,5900,180,,body only
-LENS-0001,Sigma 24-70 f2.8 DG DN,LENS,unique,STUDIO,Sigma,578965,SN99887,in_stock,good,SHELF-A,,,,1,0,u,2024-03-01,1100,EUR,,1100,,,
-BAT-0001,V-Mount 95Wh,BAT,bulk,STUDIO,Core SWX,Nano-U98,,in_stock,good,CASE-02,,,,12,4,u,2024-05-10,180,EUR,,,,,charge every 3 months
-SD-0001,CFexpress Type A 160GB,MEDIA,bulk,STUDIO,Sony,CEA-G160T,,in_stock,good,CASE-02,,,,8,3,u,,180,EUR,,,,,format in camera only
-CAM-0002,Canon R5 (perso),CAM,unique,PERSO,Canon,EOS R5,SN44221,in_stock,good,CASE-02,,,,1,0,u,2022-11-20,4000,EUR,,3200,365,,personal body - not on the company policy
