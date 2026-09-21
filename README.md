@@ -55,6 +55,34 @@ python scripts/resolve_bootstrap.py
 # Timeline: Timeline 1 (3 video / 2 audio tracks)
 ```
 
+## Also in this repo: `gear-inventory`
+
+A second, standalone skill for **inventorying physical production equipment** —
+personal kit or a full fleet. One SQLite file, Python standard library only, no
+server and no account: register gear, print QR labels, check it out to people
+and projects, track kits, consumable stock and maintenance, and run physical
+stocktakes that report exactly what is missing.
+
+```bash
+cd gear-inventory
+python3 scripts/inventory.py init
+python3 scripts/inventory.py add --name "Sony FX6" --category CAM --owner STUDIO
+python3 scripts/inventory.py checkout CAM-0001 --to alice --days 3 --project "Spot Nike"
+python3 scripts/inventory.py labels --out labels.html      # printable QR sheet
+python3 scripts/inventory.py audit new 2026Q3 --scope location=SHELF-A
+```
+
+Install it as its own skill (it is independent of DaVinci Resolve):
+
+```bash
+git clone https://github.com/odaiouattara0022-del/davinci-resolve-skill /tmp/drs
+cp -r /tmp/drs/gear-inventory ~/.claude/skills/gear-inventory
+```
+
+- [gear-inventory/SKILL.md](gear-inventory/SKILL.md) — what the agent reads
+- [gear-inventory/GUIDE-FR.md](gear-inventory/GUIDE-FR.md) — guide de démarrage 🇫🇷
+- [Build vs buy comparison](gear-inventory/references/tool-comparison.md) — Cheqroom, Rentman, Shelf, Snipe-IT, Sortly, and when *not* to use this
+
 ## Structure
 
 ```
@@ -65,9 +93,19 @@ davinci-resolve-skill/
 │   ├── workflows.md              # end-to-end recipes (import → cut → render)
 │   ├── color-grading.md          # CDL, LUTs, versions, stills
 │   └── fusion-titles.md          # Text+, transforms, Fusion comps
-└── scripts/
-    ├── resolve_bootstrap.py      # cross-platform connection helper
-    └── auto_cut_silence.py       # silence removal → jump-cut timeline
+├── scripts/
+│   ├── resolve_bootstrap.py      # cross-platform connection helper
+│   └── auto_cut_silence.py       # silence removal → jump-cut timeline
+└── gear-inventory/               # standalone equipment-inventory skill
+    ├── SKILL.md
+    ├── GUIDE-FR.md               # guide en français
+    ├── references/               # tool comparison, method, labeling, CLI
+    ├── templates/import-template.csv
+    └── scripts/
+        ├── inventory.py          # the CLI (SQLite, stdlib only)
+        ├── labels.py             # printable QR label sheets
+        ├── qrcode_min.py         # dependency-free QR encoder
+        └── test_*.py             # 50 tests, `python3 -m unittest discover`
 ```
 
 ## Troubleshooting
@@ -118,6 +156,28 @@ python scripts/resolve_bootstrap.py
 ```
 
 Si tout va bien, le script affiche `CONNECTED`, le nom du projet et de la timeline en cours.
+
+### Bonus : `gear-inventory` — inventaire du matériel
+
+Une seconde compétence, indépendante, pour **faire l'inventaire de votre
+matériel** : du matériel perso jusqu'à un parc de production. Un seul fichier
+SQLite, uniquement la bibliothèque standard de Python, aucun serveur ni compte.
+Étiquettes QR imprimables, sorties/retours par personne et par projet, kits,
+consommables, entretien, et récolement physique qui dit exactement ce qui
+manque.
+
+```bash
+cd gear-inventory
+python3 scripts/inventory.py init
+python3 scripts/inventory.py add --name "Sony FX6" --category CAM --owner STUDIO
+python3 scripts/inventory.py checkout CAM-0001 --to alice --days 3
+python3 scripts/inventory.py labels --out etiquettes.html
+```
+
+👉 **[Guide de démarrage en français](gear-inventory/GUIDE-FR.md)** — et un
+[comparatif honnête des solutions du marché](gear-inventory/references/tool-comparison.md)
+(Cheqroom, Rentman, Shelf, Snipe-IT, Sortly) pour savoir quand *ne pas* utiliser
+cet outil.
 
 ### Licence
 
