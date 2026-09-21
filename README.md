@@ -1,5 +1,7 @@
 # DaVinci Resolve Skill
 
+[![tests](https://github.com/odaiouattara0022-del/davinci-resolve-skill/actions/workflows/tests.yml/badge.svg)](https://github.com/odaiouattara0022-del/davinci-resolve-skill/actions/workflows/tests.yml)
+
 An [Agent Skill](https://agentskills.io) that teaches AI coding agents (Claude Code, Codex, Copilot CLI, Gemini CLI…) how to **edit video in DaVinci Resolve**: build timelines, cut clips, auto-remove silences, generate subtitles, color grade, add Text+ titles, and manage the render queue — all through the official Python scripting API that ships with Resolve.
 
 *[Version française ci-dessous 🇫🇷](#-version-française)*
@@ -107,6 +109,10 @@ davinci-resolve-skill/
         ├── qrcode_min.py         # dependency-free QR encoder
         └── test_*.py             # 50 tests, `python3 -m unittest discover`
 ```
+
+CI (`.github/workflows/tests.yml`) runs the inventory test suite on Python
+3.9, 3.11 and 3.13, byte-compiles the Resolve scripts, and drives the CLI
+end to end on every pull request.
 
 ## Troubleshooting
 

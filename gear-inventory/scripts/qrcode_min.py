@@ -4,7 +4,7 @@ Versions 1-4, error-correction level L, alphanumeric and byte modes. That is
 25 / 47 / 77 / 114 alphanumeric characters, or 17 / 32 / 53 / 78 bytes. Asset
 tags and short URLs fit comfortably; longer payloads raise ValueError.
 
-Why hand-rolled: the whole inventory toolchain must run on a bare Python 3.8+
+Why hand-rolled: the whole inventory toolchain must run on a bare Python 3.9+
 install (no pip, no network), so `labels.py` can print a sheet anywhere.
 
     >>> m = encode("CAM-0007")

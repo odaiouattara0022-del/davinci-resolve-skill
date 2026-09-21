@@ -21,7 +21,7 @@ n'enferme pas.
 
 ## 1. Installation
 
-Rien à installer : Python 3.8+ suffit.
+Rien à installer : Python 3.9+ suffit.
 
 ```bash
 cd gear-inventory
